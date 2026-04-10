@@ -37,7 +37,7 @@ function run(cmd, silent = false) {
       encoding: 'utf-8',
       stdio: silent ? 'pipe' : 'inherit'
     });
-    return output.trim();
+    return (output || '').trim();
   } catch (error) {
     if (!silent) {
       log(`❌ Command failed: ${cmd}`, 'red');
