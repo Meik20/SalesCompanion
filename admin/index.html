@@ -228,7 +228,7 @@ window.initFirebaseWhenReady();
     <div class="fg"><label>Identifiant</label><input type="text" id="login-user" value="admin" onkeydown="if(event.key==='Enter')doLogin()"></div>
     <div class="fg"><label>Mot de passe</label><input type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
     <div class="auth-err" id="login-err"></div>
-    <button class="auth-btn" id="l-btn" onclick="doLogin()">Accéder au panel →</button>
+    <button type="button" class="auth-btn" id="l-btn" onclick="doLogin(); return false;">Accéder au panel →</button>
   </div>
 </div>
 
@@ -520,15 +520,19 @@ if(authManager.isAuthenticated()) {
 }
 
 async function doLogin(){
+  console.log('[doLogin] Function called');
   const e = document.getElementById('login-user').value.trim();
   const p = document.getElementById('login-pass').value;
   const err = document.getElementById('login-err');
+  
+  console.log('[doLogin] Username:', e, 'Password length:', p.length);
   
   err.style.display = 'none';
   
   if(!e || !p){
     err.textContent = '❌ Saisissez identifiant et mot de passe';
     err.style.display = 'block';
+    console.log('[doLogin] Missing credentials');
     return;
   }
 
@@ -555,11 +559,14 @@ async function doLogin(){
     // Fallback to API authentication
     console.log('[Auth] Using API authentication (admin)...');
     const API = (window.location.origin && window.location.origin !== 'null') ? window.location.origin : 'http://localhost:3311';
+    console.log('[Auth] API endpoint:', API);
     const response = await fetch(`${API}/admin/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: e, password: p })
     });
+    
+    console.log('[Auth] Response status:', response.status);
     
     if (!response.ok) {
       const data = await response.json();
@@ -567,6 +574,7 @@ async function doLogin(){
     }
     
     const data = await response.json();
+    console.log('[Auth] Login response:', data);
     adminToken = data.token;
     authManager.setToken(adminToken);
     
