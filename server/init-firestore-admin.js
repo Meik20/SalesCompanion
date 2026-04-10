@@ -29,34 +29,31 @@ async function initializeAdmin() {
 
   try {
     // Check if admin already exists
-    const existing = await db.collection('admin_users')
-      .where('email', '==', 'admin')
-      .limit(1)
-      .get();
+    const doc = await db.collection('admins').doc('admin').get();
 
-    if (!existing.empty) {
+    if (doc.exists) {
       console.log('[OK] Admin already exists');
-      console.log('     Email: admin');
+      console.log('     Username: admin');
       console.log('     Password: admin123');
     } else {
-      // Create default admin
+      // Create default admin with username as document ID
       const passwordHash = await bcrypt.hash('admin123', 10);
 
       const adminData = {
-        email: 'admin',
-        password_hash: passwordHash,
+        username: 'admin',
+        password: passwordHash,
         name: 'Administrator',
         role: 'admin',
         first_login: true,
         created_at: new Date(),
+        updated_at: new Date(),
         last_login: null
       };
 
-      const docRef = await db.collection('admin_users').add(adminData);
+      await db.collection('admins').doc('admin').set(adminData);
 
       console.log('[OK] Admin created successfully');
-      console.log('     ID: ' + docRef.id);
-      console.log('     Email: admin');
+      console.log('     Username: admin');
       console.log('     Password: admin123');
       console.log('     First Login: true (will be prompted to change password)');
     }

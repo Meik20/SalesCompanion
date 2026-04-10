@@ -15,6 +15,7 @@ const os = require('os');
 // ── FIRESTORE FOR DATA PERSISTENCE ──────────────────────────────
 const { getFirestore, initFirestore, isFirestoreReady } = require('./firestore-config');
 const firestoreHelpers = require('./firestore-helpers');
+const { getAdminLocally, updateAdminLocally } = require('./admin-db-local');
 
 // Initialize Firestore on startup
 (async () => {
@@ -123,18 +124,33 @@ async function deleteUserFirestore(userId) {
 
 // Admin functions
 async function getAdminByUsernameFirestore(username) {
-  if (!db) return null;
+  if (!db) {
+    // Fallback to local storage if Firestore not available
+    console.log(`[Auth] Firestore unavailable, using local fallback for admin: ${username}`);
+    return getAdminLocally(username);
+  }
   try {
     const doc = await db.collection('admins').doc(username).get();
-    return doc.exists ? { id: doc.id, ...doc.data() } : null;
+    if (!doc.exists) {
+      console.log(`[Firestore] Admin '${username}' not found in admins collection`);
+      return null;
+    }
+    const data = doc.data();
+    return { id: doc.id, ...data };
   } catch (e) {
-    console.error(`[Firestore] getAdmin error:`, e.message);
-    return null;
+    console.error(`[Firestore] getAdminByUsernameFirestore error:`, e.message);
+    // Fallback to local storage on Firestore error
+    console.log(`[Auth] Firestore error, falling back to local storage for admin: ${username}`);
+    return getAdminLocally(username);
   }
 }
 
 async function updateAdminFirestore(adminId, updates) {
-  if (!db) return;
+  if (!db) {
+    // Fallback to local storage if Firestore not available
+    console.log(`[Auth] Firestore unavailable, using local fallback to update admin: ${adminId}`);
+    return updateAdminLocally(adminId, updates);
+  }
   try {
     await db.collection('admins').doc(adminId).update({
       ...updates,
@@ -142,6 +158,9 @@ async function updateAdminFirestore(adminId, updates) {
     });
   } catch (e) {
     console.error(`[Firestore] updateAdmin error:`, e.message);
+    // Fallback to local storage on Firestore error
+    console.log(`[Auth] Firestore error, falling back to local storage to update admin: ${adminId}`);
+    return updateAdminLocally(adminId, updates);
   }
 }
 
