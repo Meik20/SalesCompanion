@@ -1,53 +1,26 @@
 # 📊 Configuration Base de Données - Sales Companion
 
-## ✅ Base de données actuelle : PostgreSQL
+## ⚠️ POSTGRESQL DEPRECATED - USE FIRESTORE INSTEAD
 
-Sales Companion **2.0** utilise **PostgreSQL** comme base de données principale.
+**PostgreSQL has been completely removed from SalesCompanion v2.0+**
 
-### Migration effectuée
-- ✅ SQLite → PostgreSQL (complétée)
-- ✅ Tous les données migrées
-- ✅ Toutes les requêtes optimisées pour PostgreSQL
+Sales Companion now uses **Firestore/Firebase exclusively** for all data storage and authentication.
 
----
+### ✅ Current Architecture (v2.0+)
+- ✅ All data in Firestore
+- ✅ Firebase Authentication (Admin + Users)
+- ✅ Real-time sync across clients
+- ✅ Automatic backups
 
-## ⚠️ À propos des fichiers Firebase
-
-Certains fichiers Firebase existent dans le répertoire (`firebase-auth.js`, `firebase-init.js`, etc.), mais ils sont **déprécié et ne sont pas utilisés** pour la base de données.
-
-### Pourquoi existent-ils?
-- **Compatibilité optionnelle** : Peuvent être utilisés pour l'authentification utilisateur (en complément)
-- **Historique** : Vestiges de la version 1.x (optionnel, laissés pour référence)
-- **Non critiques** : Peuvent être supprimés sans affecter le fonctionnement
-
-### Authentification
-- ✅ **API JWT** : Authentification utilisateur via `/auth/login` et `/auth/register` (principal)
-- ⚠️ **Firebase Auth** : Code de fallback inclus (fallback optionnel, non utilisé par défaut)
-- 🔐 **Token stockés** : JWT HS256 (30 jours d'expiration)
+### 📚 See Current Documentation
+👉 **[FIRESTORE-DATABASE-SETUP.md](FIRESTORE-DATABASE-SETUP.md)** - Complete Firestore setup guide
+👉 **[POSTGRESQL-REMOVAL-COMPLETE.md](POSTGRESQL-REMOVAL-COMPLETE.md)** - Migration details from v1.x
 
 ---
 
-## 🗄️ Configuration PostgreSQL
+## 🗄️ LEGACY: PostgreSQL (v1.x - DEPRECATED)
 
-### Variables d'environnement requises
-```env
-DATABASE_URL=postgresql://user:password@localhost:5432/sales_companion
-JWT_SECRET=sc-secret-2025
-PORT=3311
-NODE_ENV=production
-```
-
-### Tables principales
-- `admins` - Comptes administrateurs
-- `users` - Comptes utilisateurs
-- `companies` - Base de données entreprises
-- `usage_logs` - Historique des recherches
-- `pipeline` - CRM d'opportunités
-- `saved_searches` - Signets utilisateurs
-- `import_logs` - Historique des imports
-- `config` - Configuration système (API keys, etc.)
-
-### Connexion locale
+This file documents the old PostgreSQL architecture.
 ```sql
 psql postgresql://user:password@localhost:5432/sales_companion
 ```

@@ -847,14 +847,32 @@ app.delete('/admin/users/:id', adminMiddleware, async (req, res) => {
 app.get('/admin/companies/export', adminMiddleware, async (req, res) => {
   try {
     const { region, secteur, q } = req.query;
-    let sql = 'SELECT raison_sociale, sigle, niu, activite_principale, centre_rattachement, secteur, region, ville, adresse, telephone, email, site_web, dirigeant, statut_juridique, capital, rccm, date_creation, description, source_fichier FROM companies WHERE active=true';
-    const params = [];
-    let idx = 1;
-    if (region) { sql += ` AND region=$${idx++}`; params.push(region); }
-    if (secteur) { sql += ` AND secteur=$${idx++}`; params.push(secteur); }
-    if (q) { sql += ` AND (raison_sociale ILIKE $${idx} OR niu ILIKE $${idx + 1})`; params.push(`%${q}%`, `%${q}%`); idx += 2; }
-    sql += ' ORDER BY raison_sociale ASC';
-    const companies = await dbQuery(sql, params);
+    
+    // Build Firestore query
+    let query = db.collection('companies').where('active', '==', true);
+    
+    if (region) {
+      query = query.where('region', '==', region);
+    }
+    if (secteur) {
+      query = query.where('secteur', '==', secteur);
+    }
+    
+    const snapshot = await query.orderBy('raison_sociale', 'asc').get();
+    let companies = [];
+    snapshot.forEach(doc => {
+      companies.push({ id: doc.id, ...doc.data() });
+    });
+    
+    // Client-side filtering for full-text search (Firestore limitation)
+    if (q) {
+      const qLower = q.toLowerCase();
+      companies = companies.filter(c => 
+        (c.raison_sociale?.toLowerCase().includes(qLower)) ||
+        (c.niu?.toLowerCase().includes(qLower))
+      );
+    }
+    
     const headers = ['raison_sociale','sigle','niu','activite_principale','centre_rattachement','secteur','region','ville','adresse','telephone','email','site_web','dirigeant','statut_juridique','capital','rccm','date_creation','description','source_fichier'];
     const escapeCsv = value => `"${String(value || '').replace(/"/g,'""')}"`;
     const csv = [headers.join(','), ...companies.map(c => headers.map(h => escapeCsv(c[h])).join(','))].join('\n');
@@ -906,6 +924,7 @@ app.post('/admin/import', adminMiddleware, upload.single('file'), async (req, re
     let imported = 0, skipped = 0, errors = 0, updated = 0;
     const detectedColumns = rows[0] ? Object.keys(rows[0]).reduce((acc, key) => { acc[key] = key; return acc; }, {}) : {};
 
+    // Process each row with Firestore
     for (const rawRow of rows) {
       try {
         const row = normalizeRow(rawRow);
@@ -913,13 +932,12 @@ app.post('/admin/import', adminMiddleware, upload.single('file'), async (req, re
 
         const niu = row.niu?.toString().trim() || null;
         
-        // Auto-détecter secteur si non fourni
+        // Auto-detect secteur/region/ville
         let secteur = row.secteur || '';
         if (!secteur && row.activite_principale) {
           secteur = detectSector(row.activite_principale);
         }
         
-        // Auto-détecter région et ville si non fournis
         let region = row.region || '';
         let ville = row.ville || '';
         if (!region && row.centre_rattachement) {
@@ -930,69 +948,82 @@ app.post('/admin/import', adminMiddleware, upload.single('file'), async (req, re
           }
         }
         
-        // Améliorer la détection de ville via l'adresse si toujours pas trouvée
         if (!ville && row.adresse) {
           const detectedVille = detectVille(row.adresse);
           if (detectedVille) {
             ville = detectedVille;
-            // Si région toujours pas détectée, essayer de la déduire de la ville
             if (!region) {
               const regionFromVille = VILLE_REGION[detectedVille.toLowerCase()];
               if (regionFromVille) region = regionFromVille;
             }
           }
         }
-        
-        const sql = `
-          INSERT INTO companies (
-            raison_sociale, sigle, niu, activite_principale, centre_rattachement,
-            secteur, region, ville, adresse, telephone, email, site_web, dirigeant,
-            statut_juridique, capital, rccm, date_creation, description, source_fichier
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
-          ON CONFLICT (niu) DO UPDATE SET
-            raison_sociale = EXCLUDED.raison_sociale,
-            sigle = EXCLUDED.sigle,
-            activite_principale = EXCLUDED.activite_principale,
-            centre_rattachement = EXCLUDED.centre_rattachement,
-            secteur = EXCLUDED.secteur,
-            region = EXCLUDED.region,
-            ville = EXCLUDED.ville,
-            adresse = EXCLUDED.adresse,
-            telephone = EXCLUDED.telephone,
-            email = EXCLUDED.email,
-            site_web = EXCLUDED.site_web,
-            dirigeant = EXCLUDED.dirigeant,
-            statut_juridique = EXCLUDED.statut_juridique,
-            capital = EXCLUDED.capital,
-            rccm = EXCLUDED.rccm,
-            date_creation = EXCLUDED.date_creation,
-            description = EXCLUDED.description,
-            source_fichier = EXCLUDED.source_fichier,
-            import_date = NOW()
-          RETURNING (xmax = 0) AS inserted, (xmax <> 0) AS updated;
-        `;
 
-        const values = [
-          row.raison_sociale || '', row.sigle || '', niu, row.activite_principale || '',
-          row.centre_rattachement || '', secteur, region, ville,
-          row.adresse || '', row.telephone || '', row.email || '', row.site_web || '',
-          row.dirigeant || '', row.statut_juridique || '', row.capital || '', row.rccm || '',
-          row.date_creation || '', row.description || '', fileName
-        ];
-        const result = await pool.query(sql, values);
-        const rowResult = result.rows[0] || {};
-        if (rowResult.inserted) imported++;
-        else if (rowResult.updated) updated++;
-        else skipped++;
+        const companyData = {
+          raison_sociale: row.raison_sociale || '',
+          sigle: row.sigle || '',
+          niu: niu,
+          activite_principale: row.activite_principale || '',
+          centre_rattachement: row.centre_rattachement || '',
+          secteur: secteur,
+          region: region,
+          ville: ville,
+          adresse: row.adresse || '',
+          telephone: row.telephone || '',
+          email: row.email || '',
+          site_web: row.site_web || '',
+          dirigeant: row.dirigeant || '',
+          statut_juridique: row.statut_juridique || '',
+          capital: row.capital || '',
+          rccm: row.rccm || '',
+          date_creation: row.date_creation || '',
+          description: row.description || '',
+          source_fichier: fileName,
+          import_date: new Date(),
+          active: true
+        };
+
+        // Check if company already exists (by niu)
+        let docRef = null;
+        if (niu) {
+          const existingQuery = await db.collection('companies').where('niu', '==', niu).limit(1).get();
+          if (!existingQuery.empty) {
+            // Update existing
+            docRef = existingQuery.docs[0].ref;
+            await docRef.update(companyData);
+            updated++;
+          } else {
+            // Create new
+            docRef = await db.collection('companies').add(companyData);
+            imported++;
+          }
+        } else {
+          // No NIU, create new
+          docRef = await db.collection('companies').add(companyData);
+          imported++;
+        }
       } catch (e) {
+        console.error('[Import] Row error:', e.message);
         errors++;
       }
     }
 
-    await dbQuery(
-      'INSERT INTO import_logs (filename, total_rows, imported, skipped, errors) VALUES ($1, $2, $3, $4, $5)',
-      [fileName, rows.length, imported, skipped, errors]
-    );
+    // Log the import to Firestore
+    try {
+      await db.collection('import_logs').add({
+        filename: fileName,
+        total_rows: rows.length,
+        imported: imported,
+        skipped: skipped,
+        errors: errors,
+        updated: updated,
+        imported_at: new Date(),
+        imported_by: req.admin?.username || 'unknown'
+      });
+    } catch (logError) {
+      console.error('[Import] Logging error:', logError.message);
+      // Don't fail the whole import if logging fails
+    }
 
     fs.unlinkSync(req.file.path);
 
