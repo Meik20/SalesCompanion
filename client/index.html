@@ -1,0 +1,1313 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' http://localhost:* http://192.168.*:*; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://maps.google.com https://maps.gstatic.com; frame-src https://maps.google.com;">
+<title>Sales Companion</title>
+
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --g:#1B7A3E;--gl:#e8f5ee;--gm:#2ea05a;--gd:#145f2f;
+  --bg:#f0f2f5;--bg2:#fff;--bg3:#f8f9fa;
+  --bd:rgba(0,0,0,0.07);--bd2:rgba(0,0,0,0.13);
+  --tx:#111;--tx2:#444;--tx3:#888;
+  --r:10px;--r2:14px;
+  --sh:0 2px 8px rgba(0,0,0,0.07);--sh2:0 4px 20px rgba(0,0,0,0.11);
+  --blue:#1a73e8;--bl:#e8f0fe;--red:#e74c3c;--rl:#fdf0ef;--gold:#f39c12;--gdl:#fef9ec;
+}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--tx);height:100vh;overflow:hidden;display:flex;flex-direction:column}
+
+/* AUTH */
+.auth-screen{position:fixed;inset:0;background:linear-gradient(135deg,var(--gd),var(--g));display:flex;align-items:center;justify-content:center;z-index:200}
+.auth-card{background:#fff;border-radius:20px;padding:32px 28px;width:390px;box-shadow:0 20px 60px rgba(0,0,0,0.25)}
+.a-brand{text-align:center;margin-bottom:22px}
+.a-logo{width:52px;height:52px;background:var(--g);border-radius:13px;display:flex;align-items:center;justify-content:center;margin:0 auto 10px}
+.a-brand h1{font-size:20px;font-weight:700}
+.a-brand h1 em{color:var(--g);font-style:normal}
+.a-brand p{font-size:12px;color:var(--tx3);margin-top:3px}
+.a-tabs{display:flex;border-bottom:1px solid var(--bd2);margin-bottom:18px}
+.a-tab{flex:1;padding:9px;text-align:center;font-size:13px;cursor:pointer;color:var(--tx3);border-bottom:2px solid transparent;font-weight:500;transition:all .15s}
+.a-tab.active{color:var(--g);border-bottom-color:var(--g)}
+.srv-row{display:flex;align-items:center;gap:6px;margin-bottom:12px;padding:7px 10px;background:var(--bg3);border-radius:8px;border:1px solid var(--bd2)}
+.srv-row svg{width:13px;height:13px;color:var(--tx3);flex-shrink:0}
+.srv-row input{flex:1;border:none;background:transparent;font-size:12px;font-family:'Outfit',sans-serif;color:var(--tx2);outline:none}
+.fg{margin-bottom:11px}
+.fg label{display:block;font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em}
+.fg input{width:100%;padding:9px 12px;border:1.5px solid var(--bd2);border-radius:var(--r);font-size:13.5px;font-family:'Outfit',sans-serif;outline:none;transition:border-color .15s}
+.fg input:focus{border-color:var(--g)}
+.a-btn{width:100%;padding:11px;background:var(--g);color:#fff;border:none;border-radius:var(--r);font-size:14px;font-weight:600;cursor:pointer;margin-top:5px;transition:all .15s}
+.a-btn:hover{background:var(--gm)}
+.a-btn:disabled{opacity:.5;cursor:not-allowed}
+.a-err{color:var(--red);font-size:12px;margin-top:7px;display:none;text-align:center}
+
+/* TITLEBAR */
+.tb{height:46px;background:var(--g);display:none;align-items:center;padding:0 16px;gap:12px;-webkit-app-region:drag;flex-shrink:0}
+.tb-brand{display:flex;align-items:center;gap:9px;-webkit-app-region:no-drag}
+.tb-logo{width:28px;height:28px;background:rgba(255,255,255,.2);border-radius:7px;display:flex;align-items:center;justify-content:center}
+.tb-name{color:#fff;font-size:15px;font-weight:700}
+.tb-name em{opacity:.7;font-style:normal;font-weight:400}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:10px;-webkit-app-region:no-drag}
+.tb-user{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.15);padding:5px 13px;border-radius:20px;cursor:pointer;border:1px solid rgba(255,255,255,.1);transition:background .15s}
+.tb-user:hover{background:rgba(255,255,255,.25)}
+.tb-uname{color:#fff;font-size:12.5px;font-weight:500}
+.plan-b{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:700;text-transform:uppercase}
+.pf{background:#e0e0e0;color:#555}.ps_{background:var(--bl);color:var(--blue)}.pp{background:var(--gdl);color:var(--gold)}.pe{background:var(--gl);color:var(--g)}
+.tb-rem{color:rgba(255,255,255,.65);font-size:11.5px}
+.flag{display:flex;border-radius:3px;overflow:hidden}
+.fs{width:10px;height:16px}
+
+/* 3-PANEL */
+.layout{display:none;flex:1;overflow:hidden}
+
+/* LEFT PANEL */
+.panel-left{width:224px;background:var(--bg2);border-right:1px solid var(--bd);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+.panel-left::-webkit-scrollbar{width:3px}
+.panel-left::-webkit-scrollbar-thumb{background:var(--bd2)}
+.sb-sec{padding:11px 12px 5px;font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.07em}
+.fb{padding:0 11px 11px;border-bottom:1px solid var(--bd)}
+.fl{font-size:11.5px;color:var(--tx2);margin-bottom:4px;display:block;font-weight:500}
+.fsel,.finp{width:100%;padding:7px 9px;border:1px solid var(--bd2);border-radius:8px;font-size:12.5px;font-family:'Outfit',sans-serif;color:var(--tx);background:var(--bg3);outline:none;transition:border-color .15s}
+.fsel:focus,.finp:focus{border-color:var(--g);background:#fff}
+.finp::placeholder{color:var(--tx3)}
+.add-city-btn{display:none;margin-top:5px;width:100%;padding:5px;background:var(--gl);border:1px dashed var(--g);border-radius:7px;font-size:11px;color:var(--g);font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;transition:all .15s}
+.add-city-btn:hover{background:var(--g);color:#fff}
+.srch-btn{width:100%;margin-top:8px;padding:9px;background:var(--g);color:#fff;border:none;border-radius:8px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:background .15s}
+.srch-btn:hover{background:var(--gm)}
+.srch-btn svg{width:13px;height:13px}
+.short{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;cursor:pointer;font-size:12px;color:var(--tx2);transition:all .12s;margin:0 3px}
+.short:hover{background:var(--gl);color:var(--g)}
+/* Saved searches */
+.saved-item{display:flex;align-items:center;gap:7px;padding:7px 10px;border-radius:8px;cursor:pointer;font-size:12px;color:var(--tx2);transition:all .12s;margin:0 3px}
+.saved-item:hover{background:var(--gl);color:var(--g)}
+.saved-item-title{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.saved-del{width:18px;height:18px;border-radius:50%;background:var(--rl);color:var(--red);border:none;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;opacity:0;transition:opacity .15s}
+.saved-item:hover .saved-del{opacity:1}
+.no-saved{font-size:12px;color:var(--tx3);padding:8px 12px;font-style:italic}
+
+/* CENTER PANEL */
+.panel-center{flex:1;display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--bd)}
+.center-top{padding:10px 16px;background:var(--bg2);border-bottom:1px solid var(--bd);display:flex;gap:10px;align-items:center;flex-shrink:0}
+.topsearch{flex:1;position:relative}
+.topsearch input{width:100%;padding:8px 12px 8px 36px;border:1.5px solid var(--bd2);border-radius:var(--r);font-size:13.5px;font-family:'Outfit',sans-serif;color:var(--tx);background:var(--bg3);outline:none;transition:all .15s}
+.topsearch input:focus{border-color:var(--g);background:#fff}
+.topsearch input::placeholder{color:var(--tx3)}
+.topsearch svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--tx3)}
+.gobtn{padding:8px 18px;background:var(--g);color:#fff;border:none;border-radius:var(--r);font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
+.gobtn:hover{background:var(--gm)}
+.gobtn:disabled{opacity:.4;cursor:not-allowed}
+.savebtn{padding:8px 13px;background:var(--bg2);color:var(--tx2);border:1.5px solid var(--bd2);border-radius:var(--r);font-family:'Outfit',sans-serif;font-size:12.5px;font-weight:500;cursor:pointer;transition:all .15s;display:none}
+.savebtn:hover{border-color:var(--g);color:var(--g);background:var(--gl)}
+
+.results-area{flex:1;overflow-y:auto;padding:16px}
+.results-area::-webkit-scrollbar{width:5px}
+.results-area::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:3px}
+
+/* Empty state */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding:30px;color:var(--tx3)}
+.empty-icon{font-size:44px;margin-bottom:14px;opacity:.45}
+.empty-state h2{font-size:18px;font-weight:600;color:var(--tx2);margin-bottom:8px}
+.empty-state p{font-size:13px;line-height:1.6;max-width:300px}
+.qgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:18px;width:100%;max-width:360px}
+.qcard{padding:11px;border:1.5px solid var(--bd2);border-radius:var(--r2);cursor:pointer;background:var(--bg2);text-align:left;transition:all .15s;font-family:'Outfit',sans-serif}
+.qcard:hover{border-color:var(--g);background:var(--gl)}
+.qcard-icon{font-size:18px;margin-bottom:4px}
+.qcard-title{font-size:12px;font-weight:600;color:var(--tx);display:block}
+.qcard-sub{font-size:11px;color:var(--tx3)}
+
+/* Results header */
+.results-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.results-count{font-size:13px;color:var(--tx3)}
+.results-count strong{color:var(--tx);font-size:15px}
+.source-badge{font-size:11px;padding:3px 9px;border-radius:10px;font-weight:600}
+.src-db{background:var(--gl);color:var(--g)}
+.src-nodata{background:#fff3e0;color:#e65100}
+
+/* Loading */
+.loading-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;gap:12px}
+.spinner{width:36px;height:36px;border:3px solid var(--bd2);border-top-color:var(--g);border-radius:50%;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Company card */
+.co-card{background:var(--bg2);border:1px solid var(--bd2);border-radius:var(--r2);overflow:hidden;box-shadow:var(--sh);margin-bottom:10px;transition:box-shadow .15s}
+.co-card:hover{box-shadow:var(--sh2)}
+.co-head{padding:13px 15px 9px;display:flex;align-items:flex-start;gap:11px}
+.co-av{width:44px;height:44px;border-radius:10px;background:var(--gl);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:var(--g);flex-shrink:0;border:2px solid rgba(27,122,62,.15)}
+.co-meta{flex:1;min-width:0}
+.co-name{font-size:14.5px;font-weight:700;color:var(--tx);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.co-line2{font-size:12px;color:var(--tx3);display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px}
+.co-badges{display:flex;gap:4px;flex-wrap:wrap}
+.cbadge{font-size:10.5px;padding:2px 8px;border-radius:10px;font-weight:600}
+.cb-type{background:var(--bg3);color:var(--tx2);border:1px solid var(--bd2)}
+.cb-green{background:var(--gl);color:var(--g)}
+.cb-niu{background:var(--bl);color:var(--blue);font-family:monospace}
+.co-body{padding:0 15px 11px;display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.co-f{display:flex;flex-direction:column;gap:1px}
+.co-f.full{grid-column:1/-1}
+.co-fl{font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.04em}
+.co-fv{font-size:12.5px;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.co-fv.phone{color:var(--g);font-weight:600}
+.co-fv.link{color:var(--blue);cursor:pointer}
+.co-fv.link:hover{text-decoration:underline}
+.co-fv.mono{font-family:monospace;font-size:11.5px}
+.co-fv.full{white-space:normal}
+.co-footer{border-top:1px solid var(--bd);padding:8px 15px;display:flex;gap:7px;background:var(--bg3)}
+.ca{display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:8px;font-size:11.5px;font-weight:600;cursor:pointer;border:none;font-family:'Outfit',sans-serif;transition:all .15s}
+.ca.maps{background:var(--bl);color:var(--blue)}
+.ca.maps:hover{background:var(--blue);color:#fff}
+.ca.share{background:var(--bg2);color:var(--tx2);border:1px solid var(--bd2);margin-left:auto}
+.ca.share:hover{background:var(--gl);color:var(--g);border-color:var(--g)}
+.ca svg{width:12px;height:12px}
+.map-panel{display:none;border-top:1px solid var(--bd);height:200px;position:relative}
+.map-panel iframe{width:100%;height:100%;border:none;display:block}
+.map-panel.open{display:block}
+.map-close{position:absolute;top:6px;right:6px;background:#fff;border:1px solid var(--bd2);border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;z-index:10}
+
+/* No data notice */
+.nodata-notice{background:#fff3e0;border:1px solid #ffe0b2;border-radius:var(--r);padding:14px;font-size:13px;color:#e65100;margin-bottom:14px;line-height:1.6}
+.nodata-notice strong{display:block;margin-bottom:4px}
+
+/* RIGHT PANEL - CHAT */
+.panel-right{width:300px;background:var(--bg2);display:flex;flex-direction:column;flex-shrink:0}
+.chat-head{padding:11px 14px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:8px;flex-shrink:0}
+.chat-dot{width:7px;height:7px;background:var(--g);border-radius:50%;animation:pulse 2s infinite}
+.chat-title{font-size:13px;font-weight:600}
+.chat-msgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px;scroll-behavior:smooth}
+.chat-msgs::-webkit-scrollbar{width:4px}
+.chat-msgs::-webkit-scrollbar-thumb{background:var(--bd2)}
+.chat-welcome{padding:10px 12px;background:var(--gl);border-radius:var(--r);border:1px solid rgba(27,122,62,.15)}
+.chat-welcome p{font-size:12px;color:var(--tx2);line-height:1.6}
+.cmsg{display:flex;gap:7px;align-items:flex-start}
+.cmsg.user{flex-direction:row-reverse}
+.cav{width:26px;height:26px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700}
+.cav.bot{background:var(--g);color:#fff}
+.cav.user{background:#1a1a2e;color:#fff}
+.cbbl{max-width:86%;padding:8px 11px;font-size:12.5px;line-height:1.65}
+.cbbl.bot{background:var(--bg3);border:1px solid var(--bd);border-radius:3px 11px 11px 11px;color:var(--tx)}
+.cbbl.user{background:var(--g);color:#fff;border-radius:11px 3px 11px 11px}
+.cbbl.loading{display:flex;align-items:center;gap:4px;padding:10px 12px}
+.cbbl strong{font-weight:600}
+.cbbl ul{padding-left:14px;margin:4px 0}
+.cbbl li{margin:2px 0}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--bd2);animation:bounce 1.2s infinite}
+.dot:nth-child(2){animation-delay:.2s}.dot:nth-child(3){animation-delay:.4s}
+.chat-inp-area{padding:10px 12px;border-top:1px solid var(--bd);display:flex;gap:7px;align-items:flex-end;flex-shrink:0}
+.chat-inp-area textarea{flex:1;border:1.5px solid var(--bd2);border-radius:var(--r);padding:7px 10px;font-size:12.5px;font-family:'Outfit',sans-serif;color:var(--tx);background:var(--bg3);resize:none;min-height:36px;max-height:90px;line-height:1.5;outline:none;transition:all .15s}
+.chat-inp-area textarea:focus{border-color:var(--g);background:#fff}
+.chat-inp-area textarea::placeholder{color:var(--tx3)}
+.send-btn{width:36px;height:36px;border-radius:9px;background:var(--g);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
+.send-btn:hover{background:var(--gm)}
+.send-btn:disabled{opacity:.4;cursor:not-allowed}
+
+@keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* MODALS */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:500}
+.overlay.open{display:flex}
+
+/* Profile modal */
+.prof-modal{background:#fff;border-radius:20px;width:440px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.prof-hd{background:linear-gradient(135deg,var(--gd),var(--g));padding:22px;color:#fff;position:relative}
+.prof-av{width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.2);border:3px solid rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;margin-bottom:8px}
+.prof-name{font-size:18px;font-weight:700}
+.prof-email{font-size:12.5px;opacity:.8;margin-top:2px}
+.prof-close{position:absolute;top:12px;right:12px;background:rgba(255,255,255,.2);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
+.prof-close:hover{background:rgba(255,255,255,.35)}
+.prof-body{padding:16px 20px}
+.prof-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.ps{background:var(--bg3);border-radius:var(--r);padding:10px;text-align:center}
+.ps-val{font-size:20px;font-weight:700}
+.ps-lbl{font-size:10.5px;color:var(--tx3);margin-top:2px}
+.plans-lbl{font-size:13px;font-weight:700;margin-bottom:9px}
+.plan-row{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1.5px solid var(--bd2);border-radius:var(--r);margin-bottom:6px}
+.plan-row.curr{border-color:var(--g);background:var(--gl)}
+.pr-icon{font-size:17px;width:28px;text-align:center}
+.pr-info{flex:1}
+.pr-name{font-size:13px;font-weight:700}
+.plan-row.curr .pr-name{color:var(--g)}
+.pr-lim{font-size:11px;color:var(--tx3);margin-top:1px}
+.pr-price{font-size:12px;font-weight:700;color:var(--g);white-space:nowrap}
+.upg-btn{padding:5px 12px;background:var(--g);color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif}
+.upg-btn.dis{background:var(--bd2);color:var(--tx3);cursor:not-allowed}
+.prof-ft{padding:12px 20px;border-top:1px solid var(--bd);display:flex;gap:10px}
+.lg-btn2{padding:9px 16px;background:var(--rl);color:var(--red);border:none;border-radius:var(--r);font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer}
+.ct-btn{flex:1;padding:9px;background:var(--g);color:#fff;border:none;border-radius:var(--r);font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer}
+
+/* Save modal */
+.save-modal{background:#fff;border-radius:var(--r2);padding:22px 24px;width:360px;box-shadow:0 12px 40px rgba(0,0,0,.2)}
+.save-modal h3{font-size:15px;font-weight:700;margin-bottom:12px}
+.save-modal input{width:100%;padding:9px 12px;border:1.5px solid var(--bd2);border-radius:var(--r);font-size:13.5px;font-family:'Outfit',sans-serif;outline:none;margin-bottom:12px;transition:border-color .15s}
+.save-modal input:focus{border-color:var(--g)}
+.mbtns{display:flex;gap:8px;justify-content:flex-end}
+.btn-cancel{padding:8px 15px;background:var(--bg3);border:1px solid var(--bd2);border-radius:var(--r);font-family:'Outfit',sans-serif;font-size:12.5px;cursor:pointer}
+.btn-ok{padding:8px 15px;background:var(--g);color:#fff;border:none;border-radius:var(--r);font-family:'Outfit',sans-serif;font-size:12.5px;font-weight:600;cursor:pointer}
+
+/* Add city modal */
+.ac-modal{background:#fff;border-radius:var(--r2);padding:20px 22px;width:320px;box-shadow:0 12px 40px rgba(0,0,0,.2)}
+.ac-modal h3{font-size:14px;font-weight:700;margin-bottom:10px}
+.ac-modal input{width:100%;padding:8px 11px;border:1.5px solid var(--bd2);border-radius:var(--r);font-size:13px;font-family:'Outfit',sans-serif;outline:none;margin-bottom:10px}
+.ac-modal input:focus{border-color:var(--g)}
+
+.upgrade-banner{background:linear-gradient(135deg,#667eea,#764ba2);border-radius:var(--r);padding:12px 14px;color:#fff;margin:4px 0}
+.upgrade-banner strong{display:block;font-size:13px;margin-bottom:3px}
+.upgrade-banner p{font-size:12px;opacity:.9;margin-bottom:8px}
+.upgrade-banner button{padding:6px 13px;background:#fff;color:#764ba2;border:none;border-radius:7px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;font-size:12px}
+
+.pipeline-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-shrink:0}
+.pipeline-tabs{display:flex;gap:3px;background:var(--bg3);border-radius:var(--r);padding:4px;flex-wrap:wrap}
+.ptab{padding:5px 8px;border-radius:7px;font-size:11.5px;font-weight:600;cursor:pointer;color:var(--tx3);border:none;background:transparent;font-family:'Outfit',sans-serif;transition:all .15s;white-space:nowrap;flex:1;text-align:center}
+.ptab.active{background:#fff;color:var(--tx);box-shadow:var(--sh)}
+.ptab.prospection.active{color:#e65100;background:#fff3e0}
+.ptab.negociation.active{color:var(--blue);background:var(--bl)}
+.ptab.conclue.active{color:var(--g);background:var(--gl)}
+.pipeline-count{font-size:11px;background:var(--red);color:#fff;border-radius:10px;padding:1px 7px;font-weight:700;margin-left:4px}
+.ptab.negociation .pipeline-count{background:var(--blue)}
+.ptab.conclue .pipeline-count{background:var(--g)}
+.pipeline-list{flex:1;overflow-y:auto;padding:0 2px}
+.pipeline-list::-webkit-scrollbar{width:4px}
+.pipeline-list::-webkit-scrollbar-thumb{background:var(--bd2)}
+.pipeline-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:120px;text-align:center;color:var(--tx3)}
+.pipeline-empty .pe-icon{font-size:28px;margin-bottom:8px;opacity:.4}
+.pipeline-empty p{font-size:12px}
+.pcard{background:var(--bg2);border:1.5px solid var(--bd2);border-radius:var(--r2);padding:11px 13px;margin-bottom:8px;transition:all .15s;position:relative}
+.pcard:hover{border-color:var(--g);box-shadow:var(--sh)}
+.pcard.prospection{border-left:3px solid #e65100}
+.pcard.negociation{border-left:3px solid var(--blue)}
+.pcard.conclue{border-left:3px solid var(--g)}
+.pcard-name{font-size:13.5px;font-weight:700;color:var(--tx);margin-bottom:3px;padding-right:60px}
+.pcard-sub{font-size:11.5px;color:var(--tx3);margin-bottom:6px;display:flex;gap:8px;flex-wrap:wrap}
+.pcard-note{font-size:12px;color:var(--tx2);background:var(--bg3);border-radius:6px;padding:5px 8px;margin-bottom:6px;line-height:1.5}
+.pcard-next{font-size:11.5px;color:var(--blue);display:flex;align-items:center;gap:4px;margin-bottom:6px}
+.pcard-actions{display:flex;gap:5px;flex-wrap:wrap}
+.pact{padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:none;font-family:'Outfit',sans-serif;transition:all .15s}
+.pact.to-neg{background:var(--bl);color:var(--blue)}
+.pact.to-neg:hover{background:var(--blue);color:#fff}
+.pact.to-ok{background:var(--gl);color:var(--g)}
+.pact.to-ok:hover{background:var(--g);color:#fff}
+.pact.to-prosp{background:#fff3e0;color:#e65100}
+.pact.del{background:var(--rl);color:var(--red);margin-left:auto}
+.pact.del:hover{background:var(--red);color:#fff}
+.pcard-del{position:absolute;top:8px;right:8px}
+.add-pipeline-btn{width:100%;padding:8px;background:var(--g);color:#fff;border:none;border-radius:var(--r);font-family:'Outfit',sans-serif;font-size:12.5px;font-weight:600;cursor:pointer;margin-bottom:10px;flex-shrink:0;transition:background .15s}
+.add-pipeline-btn:hover{background:var(--gm)}
+/* Edit note modal */
+.note-modal{background:#fff;border-radius:var(--r2);padding:22px 24px;width:380px;box-shadow:0 12px 40px rgba(0,0,0,.2)}
+.note-modal h3{font-size:15px;font-weight:700;margin-bottom:12px}
+.note-modal textarea{width:100%;padding:9px 11px;border:1.5px solid var(--bd2);border-radius:var(--r);font-size:13px;font-family:'Outfit',sans-serif;resize:vertical;min-height:80px;outline:none;margin-bottom:8px;transition:border-color .15s}
+.note-modal textarea:focus{border-color:var(--g)}
+.note-modal input{width:100%;padding:8px 11px;border:1.5px solid var(--bd2);border-radius:var(--r);font-size:13px;font-family:'Outfit',sans-serif;outline:none;margin-bottom:8px}
+.note-modal input:focus{border-color:var(--g)}
+.note-modal label{display:block;font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em}
+.toast{position:fixed;bottom:20px;right:20px;background:#111;color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
+</style>
+<style>
+/* Outfit font — embarquée localement (pas de réseau requis) */
+@import url("data:text/css,");
+:root { --font: 'Outfit', 'Segoe UI', system-ui, -apple-system, Arial, sans-serif; }
+body, button, input, select, textarea { font-family: var(--font); }
+</style>
+<!-- Firebase CDN -->
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+<script>
+// Firebase initialization inline
+window.firebaseConfig = {
+  apiKey: "AIzaSyCVJxyeysHWDQ7yECTb-GApJz7u8s5l7N0",
+  authDomain: "sales-companion-9cf56.firebaseapp.com",
+  projectId: "sales-companion-9cf56",
+  storageBucket: "sales-companion-9cf56.firebasestorage.app",
+  messagingSenderId: "1058275289756",
+  appId: "1:1058275289756:web:534cd79d5eb373348f5b59"
+};
+
+// ── FIREBASE INITIALIZATION WITH FALLBACK ──────────────────────
+let firebaseInitAttempts = 0;
+const maxFirebaseInitAttempts = 10;
+
+function waitForFirebase() {
+  if (typeof firebase !== 'undefined' && firebase.apps) {
+    console.log('[Firebase] CDN loaded successfully');
+    initFirebase();
+  } else if (firebaseInitAttempts < maxFirebaseInitAttempts) {
+    firebaseInitAttempts++;
+    console.log(`[Firebase] Waiting... attempt ${firebaseInitAttempts}/${maxFirebaseInitAttempts}`);
+    setTimeout(waitForFirebase, 500);
+  } else {
+    console.error('[Firebase] Failed to load after', maxFirebaseInitAttempts, 'attempts');
+    useLocalAuth();
+  }
+}
+
+function initFirebase() {
+  const firebaseConfig = window.firebaseConfig;
+  if (!firebaseConfig || !firebaseConfig.apiKey) {
+    console.error('[Firebase] Config not available');
+    useLocalAuth();
+    return;
+  }
+
+  try {
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+      console.log('[Firebase] Initialized with projectId:', firebaseConfig.projectId);
+    }
+    
+    // Enable persistence
+    firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL).then(() => {
+      // Listen to auth state changes
+      firebase.auth().onAuthStateChanged((user) => {
+        if (user) {
+          console.log('[Firebase] User authenticated:', user.email);
+          // User is logged in - app will handle auth state
+        } else {
+          console.log('[Firebase] No user logged in');
+          // User not logged in - show auth screen
+        }
+      });
+      console.log('[Firebase] ✅ Initialization complete');
+    }).catch((error) => {
+      console.error('[Firebase] Persistence error:', error);
+      useLocalAuth();
+    });
+  } catch (error) {
+    console.error('[Firebase] Init error:', error);
+    useLocalAuth();
+  }
+}
+
+// Fallback local authentication
+function useLocalAuth() {
+  console.log('[Auth] Fallback to local authentication (bypass Firebase)');
+  // App will use JWT tokens from API instead of Firebase
+  // User can authenticate via /auth/login endpoint
+}
+
+// Start initialization when ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', waitForFirebase);
+} else {
+  waitForFirebase();
+}
+</script>
+</head>
+<body>
+
+<!-- AUTH -->
+<div class="auth-screen" id="auth-screen">
+  <div class="auth-card">
+    <div class="a-brand">
+      <div class="a-logo"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="28" height="28"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg></div>
+      <h1>SALES <em>COMPANION</em></h1>
+      <p>Intelligence B2B · Cameroun</p>
+    </div>
+    <div class="srv-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/></svg>
+      <input type="text" id="server-url" placeholder="http://localhost:3311">
+    </div>
+    <div class="a-tabs">
+      <div class="a-tab active" onclick="switchTab('login')">Connexion</div>
+      <div class="a-tab" onclick="switchTab('register')">Créer un compte</div>
+    </div>
+    <div id="login-form">
+      <div class="fg"><label>Email</label><input type="email" id="l-email" placeholder="vous@exemple.com" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <div class="fg"><label>Mot de passe</label><input type="password" id="l-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <div class="a-err" id="l-err"></div>
+      <button class="a-btn" id="l-btn" onclick="doLogin()">Se connecter →</button>
+    </div>
+    <div id="register-form" style="display:none">
+      <div class="fg"><label>Nom complet</label><input type="text" id="r-name" placeholder="Jean Dupont"></div>
+      <div class="fg"><label>Email</label><input type="email" id="r-email" placeholder="vous@exemple.com"></div>
+      <div class="fg"><label>Mot de passe</label><input type="password" id="r-pass" placeholder="Minimum 6 caractères" onkeydown="if(event.key==='Enter')doRegister()"></div>
+      <div class="a-err" id="r-err"></div>
+      <button class="a-btn" id="r-btn" onclick="doRegister()">Créer mon compte →</button>
+    </div>
+  </div>
+</div>
+
+<!-- TITLEBAR -->
+<div class="tb" id="titlebar">
+  <div class="tb-brand">
+    <div class="tb-logo"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg></div>
+    <div class="tb-name">SALES <em>COMPANION</em></div>
+  </div>
+  <div class="tb-right">
+    <div class="tb-user" onclick="openProfile()">
+      <div class="tb-uname" id="tb-name">—</div>
+      <span class="plan-b" id="tb-plan">free</span>
+    </div>
+    <div class="tb-rem" id="tb-rem"></div>
+    <div class="flag">
+      <div class="fs" style="background:#007A5E"></div>
+      <div class="fs" style="background:#CE1126;display:flex;align-items:center;justify-content:center"><span style="color:#FCD116;font-size:9px">★</span></div>
+      <div class="fs" style="background:#FCD116"></div>
+    </div>
+  </div>
+</div>
+
+<!-- LAYOUT -->
+<div class="layout" id="layout">
+
+  <!-- LEFT -->
+  <div class="panel-left">
+    <div class="sb-sec">Filtres</div>
+    <div class="fb">
+      <label class="fl">Secteur d'activité</label>
+      <select class="fsel" id="f-sector">
+        <option value="">Tous les secteurs</option>
+        <option>BTP et construction</option><option>Commerce et distribution</option>
+        <option>Import-Export</option><option>Agroalimentaire</option>
+        <option>Agriculture et élevage</option><option>Technologies et numérique</option>
+        <option>Transport et logistique</option><option>Santé et pharmacie</option>
+        <option>Éducation et formation</option><option>Hôtellerie et restauration</option>
+        <option>Services financiers</option><option>Énergie et mines</option>
+        <option>Industrie et manufacturing</option><option>Médias et communication</option>
+        <option>Conseil et services B2B</option><option>Autres</option>
+      </select>
+    </div>
+    <div class="fb">
+      <label class="fl">Région</label>
+      <select class="fsel" id="f-region" onchange="updateCities()">
+        <option value="">Toutes</option>
+        <option>Littoral</option><option>Centre</option><option>Ouest</option><option>Nord</option>
+        <option>Nord-Ouest</option><option>Extrême-Nord</option><option>Adamaoua</option>
+        <option>Est</option><option>Sud</option><option>Sud-Ouest</option>
+      </select>
+    </div>
+    <div class="fb">
+      <label class="fl">Ville</label>
+      <select class="fsel" id="f-city"></select>
+      <button class="add-city-btn" id="add-city-btn" onclick="openAC()">+ Ajouter une ville</button>
+    </div>
+    <div class="fb">
+      <label class="fl">Nom / Raison sociale</label>
+      <input class="finp" id="f-name" type="text" placeholder="Ex: CamLogistic...">
+      <button class="srch-btn" onclick="launchSearch()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Rechercher
+      </button>
+    </div>
+
+    <div class="sb-sec">Raccourcis</div>
+    <div class="short" onclick="qs('BTP et construction','Douala','Littoral')">🏗️ BTP à Douala</div>
+    <div class="short" onclick="qs('Technologies et numérique','Yaoundé','Centre')">💻 Tech à Yaoundé</div>
+    <div class="short" onclick="qs('Agroalimentaire','','')">🌾 Agroalimentaire</div>
+    <div class="short" onclick="qs('Transport et logistique','','')">🚛 Transport</div>
+    <div class="short" onclick="qs('Services financiers','','')">💰 Services financiers</div>
+    <div class="short" onclick="qs('Commerce et distribution','Bafoussam','Ouest')">🛒 Commerce Bafoussam</div>
+
+    <div class="sb-sec">Recherches sauvegardées</div>
+    <div id="saved-list"></div>
+  </div>
+
+  <!-- CENTER -->
+  <div class="panel-center">
+    <div class="center-top">
+      <div class="topsearch">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="top-input" type="text" placeholder="Rechercher par nom, NIU, activité, ville..." onkeydown="if(event.key==='Enter')searchFromTop()">
+      </div>
+      <button class="gobtn" id="gobtn" onclick="searchFromTop()">Rechercher</button>
+      <button class="savebtn" id="savebtn" onclick="openSaveModal()">💾 Sauvegarder</button>
+    </div>
+    <div class="results-area" id="results-area">
+      <div class="empty-state">
+        <div class="empty-icon">🔍</div>
+        <h2>Recherchez des entreprises</h2>
+        <p>Utilisez les filtres à gauche ou la barre de recherche. Les résultats proviennent exclusivement de la base de données officielle.</p>
+        <div class="qgrid">
+          <button class="qcard" onclick="qs('BTP et construction','Douala','')"><div class="qcard-icon">🏗️</div><span class="qcard-title">BTP Douala</span><span class="qcard-sub">Nouvelles entreprises</span></button>
+          <button class="qcard" onclick="qs('Technologies et numérique','Yaoundé','')"><div class="qcard-icon">💻</div><span class="qcard-title">Tech Yaoundé</span><span class="qcard-sub">PME &amp; Startups</span></button>
+          <button class="qcard" onclick="qs('Agroalimentaire','','')"><div class="qcard-icon">🌾</div><span class="qcard-title">Agroalimentaire</span><span class="qcard-sub">Tout Cameroun</span></button>
+          <button class="qcard" onclick="qs('Transport et logistique','','')"><div class="qcard-icon">🚛</div><span class="qcard-title">Transport</span><span class="qcard-sub">Tout Cameroun</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PIPELINE PANEL -->
+  <div class="panel-pipeline" id="panel-pipeline" style="width:280px;background:var(--bg2);display:flex;flex-direction:column;flex-shrink:0;border-right:1px solid var(--bd)">
+    <div style="padding:11px 14px;border-bottom:1px solid var(--bd);flex-shrink:0">
+      <div style="font-size:13px;font-weight:700;color:var(--tx);margin-bottom:8px">Pipeline commercial</div>
+      <div class="pipeline-tabs">
+        <button class="ptab prospection active" onclick="switchPipelineTab('prospection',this)">🎯 Prospection<span class="pipeline-count" id="cnt-prosp">0</span></button>
+        <button class="ptab negociation" onclick="switchPipelineTab('negociation',this)">🤝 Négociation<span class="pipeline-count" id="cnt-neg">0</span></button>
+        <button class="ptab conclue" onclick="switchPipelineTab('conclue',this)">✅ Conclue<span class="pipeline-count" id="cnt-ok">0</span></button>
+      </div>
+    </div>
+    <div style="padding:10px 12px;border-bottom:1px solid var(--bd);flex-shrink:0">
+      <button class="add-pipeline-btn" onclick="openAddPipeline()">+ Ajouter une entreprise</button>
+    </div>
+    <div class="pipeline-list" id="pipeline-list"></div>
+  </div>
+
+  <!-- RIGHT: CHAT -->
+  <div class="panel-right">
+    <div class="chat-head">
+      <span class="chat-dot"></span>
+      <span class="chat-title">Assistant B2B</span>
+    </div>
+    <div class="chat-msgs" id="chat-msgs">
+      <div class="chat-welcome">
+        <p>Bonjour 👋 Je suis votre assistant commercial. Posez-moi vos questions sur la prospection B2B au Cameroun, les secteurs, les stratégies de vente.</p>
+      </div>
+    </div>
+    <div class="chat-inp-area">
+      <textarea id="chat-inp" placeholder="Posez une question..." rows="1" onkeydown="handleChatKey(event)" oninput="autoResize(this)"></textarea>
+      <button class="send-btn" id="send-btn" onclick="sendChat()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- PROFILE MODAL -->
+<div class="overlay" id="prof-overlay" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="prof-modal" onclick="event.stopPropagation()">
+    <div class="prof-hd">
+      <button class="prof-close" onclick="document.getElementById('prof-overlay').classList.remove('open')">✕</button>
+      <div class="prof-av" id="p-av">?</div>
+      <div class="prof-name" id="p-name">—</div>
+      <div class="prof-email" id="p-email">—</div>
+    </div>
+    <div class="prof-body">
+      <div class="prof-stats">
+        <div class="ps"><div class="ps-val" id="p-used">—</div><div class="ps-lbl">Aujourd'hui</div></div>
+        <div class="ps"><div class="ps-val" id="p-limit">—</div><div class="ps-lbl">Limite/jour</div></div>
+        <div class="ps"><div class="ps-val" id="p-rem">—</div><div class="ps-lbl">Restantes</div></div>
+      </div>
+      <div class="plans-lbl">Plans disponibles</div>
+      <div id="plan-rows"></div>
+    </div>
+    <div class="prof-ft">
+      <button class="lg-btn2" onclick="doLogout()">Déconnexion</button>
+      <button class="ct-btn" onclick="toast('Contactez votre administrateur pour tout changement de plan.')">📧 Contacter l'admin</button>
+    </div>
+  </div>
+</div>
+
+<!-- SAVE MODAL -->
+<div class="overlay" id="save-overlay" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="save-modal" onclick="event.stopPropagation()">
+    <h3>💾 Sauvegarder cette recherche</h3>
+    <input type="text" id="save-title" placeholder="Ex: BTP Douala — Mai 2025" onkeydown="if(event.key==='Enter')confirmSave()">
+    <div class="mbtns">
+      <button class="btn-cancel" onclick="document.getElementById('save-overlay').classList.remove('open')">Annuler</button>
+      <button class="btn-ok" onclick="confirmSave()">Sauvegarder</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD CITY MODAL -->
+<div class="overlay" id="ac-overlay" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="ac-modal" onclick="event.stopPropagation()">
+    <h3>Ajouter une ville</h3>
+    <input type="text" id="ac-input" placeholder="Nom de la ville..." onkeydown="if(event.key==='Enter')confirmAC2()">
+    <div class="mbtns">
+      <button class="btn-cancel" onclick="document.getElementById('ac-overlay').classList.remove('open')">Annuler</button>
+      <button class="btn-ok" onclick="confirmAC2()">Ajouter</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD TO PIPELINE MODAL -->
+<div class="overlay" id="pip-overlay" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="save-modal" onclick="event.stopPropagation()" style="width:400px">
+    <h3>🎯 Ajouter au pipeline</h3>
+    <input type="text" id="pip-name" placeholder="Nom de l'entreprise" style="margin-bottom:8px">
+    <input type="text" id="pip-sector" placeholder="Secteur d'activité">
+    <input type="text" id="pip-city" placeholder="Ville">
+    <input type="text" id="pip-phone" placeholder="Téléphone">
+    <input type="text" id="pip-email" placeholder="Email">
+    <label style="display:block;font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em">Statut</label>
+    <select id="pip-status" style="width:100%;padding:8px 10px;border:1.5px solid var(--bd2);border-radius:var(--r);font-family:'Outfit',sans-serif;font-size:13px;outline:none;margin-bottom:8px">
+      <option value="prospection">🎯 Prospection</option>
+      <option value="negociation">🤝 Négociation</option>
+      <option value="conclue">✅ Conclue</option>
+    </select>
+    <label style="display:block;font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em">Note</label>
+    <textarea id="pip-note" placeholder="Notes sur cette entreprise..."></textarea>
+    <div class="mbtns">
+      <button class="btn-cancel" onclick="document.getElementById('pip-overlay').classList.remove('open')">Annuler</button>
+      <button class="btn-ok" onclick="confirmAddPipeline()">Ajouter</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT NOTE MODAL -->
+<div class="overlay" id="note-overlay" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="note-modal" onclick="event.stopPropagation()">
+    <h3>✏️ Modifier</h3>
+    <input type="hidden" id="note-pip-id">
+    <label>Note</label>
+    <textarea id="note-text" placeholder="Notes, observations, contacts rencontrés..."></textarea>
+    <label>Prochaine action</label>
+    <input type="text" id="note-action" placeholder="Ex: Rappel, envoi devis, réunion...">
+    <label>Date prévue</label>
+    <input type="date" id="note-date">
+    <div class="mbtns">
+      <button class="btn-cancel" onclick="document.getElementById('note-overlay').classList.remove('open')">Annuler</button>
+      <button class="btn-ok" onclick="saveNote()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const REGION_CITIES={
+  '':['Douala','Yaoundé','Bafoussam','Garoua','Bamenda','Maroua','Ngaoundéré','Bertoua','Ebolowa','Kribi','Limbé','Buea','Kumba','Edéa','Nkongsamba'],
+  'Littoral':['Douala','Edéa','Nkongsamba','Mbanga','Loum','Manjo','Yabassi'],
+  'Centre':['Yaoundé','Bafia','Mbalmayo','Obala','Mfou','Akonolinga','Nanga-Eboko'],
+  'Ouest':['Bafoussam','Bangangté','Dschang','Foumban','Mbouda','Baham'],
+  'Nord':['Garoua','Guider','Poli','Tcholliré','Figuil'],
+  'Nord-Ouest':['Bamenda','Kumbo','Wum','Fundong','Nkambe','Mbengwi'],
+  'Extrême-Nord':['Maroua','Kousseri','Mokolo','Yagoua','Kaélé','Mora'],
+  'Adamaoua':['Ngaoundéré','Meiganga','Tibati','Ngaoundal','Tignère'],
+  'Est':['Bertoua','Batouri','Abong-Mbang','Yokadouma','Belabo'],
+  'Sud':['Ebolowa','Kribi','Sangmélima','Ambam','Lolodorf'],
+  'Sud-Ouest':['Buea','Limbé','Kumba','Mundemba','Mamfe'],
+};
+
+let token='',user=null,chatHistory=[],isSearching=false,isChatting=false;
+let customCities={},lastResults=[],lastFilters={},lastQuery='';
+
+(async()=>{
+  try{
+    const url=await window.electronAPI.getServerUrl();
+    if(url && document.getElementById('server-url')) document.getElementById('server-url').value=url;
+    token=await window.electronAPI.getToken();
+    if(token){
+      try{
+        const r=await window.electronAPI.getMe(token);
+        if(r&&r.status===200){user=r.data;showApp();}
+        else{await window.electronAPI.clearToken();token='';}
+      }catch(e){await window.electronAPI.clearToken();token='';}
+    }
+    updateCities();
+  }catch(e){
+    console.error('Init error:',e);
+    updateCities();
+  }
+})();
+
+function switchTab(t){
+  document.querySelectorAll('.a-tab').forEach((el,i)=>el.classList.toggle('active',(i===0&&t==='login')||(i===1&&t==='register')));
+  document.getElementById('login-form').style.display=t==='login'?'block':'none';
+  document.getElementById('register-form').style.display=t==='register'?'block':'none';
+}
+
+async function doLogin(){
+  const btn=document.getElementById('l-btn');
+  const errEl=document.getElementById('l-err');
+  if(!btn||!errEl) return;
+  btn.disabled=true; btn.textContent='Connexion...';
+  errEl.style.display='none'; errEl.textContent='';
+  try{
+    const serverUrl=(document.getElementById('server-url').value||'').trim()||'http://localhost:3311';
+    const email=(document.getElementById('l-email').value||'').trim();
+    const password=document.getElementById('l-pass').value||'';
+    if(!email){throw new Error('Saisissez votre adresse email');}
+    if(!password){throw new Error('Saisissez votre mot de passe');}
+    
+    let r = null;
+    
+    // Try Electron API if available
+    if (typeof window.electronAPI !== 'undefined' && window.electronAPI.login) {
+      console.log('[Auth] Using Electron API...');
+      try {
+        await window.electronAPI.saveServerUrl(serverUrl);
+        r = await window.electronAPI.login({serverUrl, email, password});
+      } catch (eError) {
+        console.log('[Auth] Electron API failed, trying direct API:', eError.message);
+        r = null;
+      }
+    }
+    
+    // Fallback to direct API call
+    if (!r) {
+      console.log('[Auth] Using direct API authentication...');
+      const response = await fetch(`${serverUrl}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        r = { status: 200, data: data };
+      } else {
+        const data = await response.json();
+        r = { status: response.status, data: data };
+      }
+    }
+    
+    if(!r||typeof r.status==='undefined'){throw new Error('Réponse inattendue du serveur');}
+    if(r.status===200||r.status===201){
+      token=r.data.token; 
+      user=r.data.user;
+      
+      // Save token locally
+      if (typeof window.electronAPI !== 'undefined' && window.electronAPI.saveToken) {
+        await window.electronAPI.saveToken(token);
+      } else {
+        localStorage.setItem('sc_token', token);
+      }
+      
+      showApp();
+      console.log('[Auth] ✅ Login successful');
+    } else {
+      const msg=(r.data&&r.data.error)||('Erreur '+r.status);
+      throw new Error(msg);
+    }
+  }catch(e){
+    const msg=e.message||'Erreur inconnue';
+    errEl.textContent='❌ '+msg;
+    errEl.style.display='block';
+    console.error('[Auth] Login error:', e);
+  }finally{
+    btn.disabled=false; btn.textContent='Se connecter →';
+  }
+}
+async function doRegister(){
+  const btn=document.getElementById('r-btn');
+  const errEl=document.getElementById('r-err');
+  if(!btn||!errEl) return;
+  btn.disabled=true; btn.textContent='Création...';
+  errEl.style.display='none'; errEl.textContent='';
+  try{
+    const serverUrl=(document.getElementById('server-url').value||'').trim()||'http://localhost:3311';
+    const name=(document.getElementById('r-name').value||'').trim();
+    const email=(document.getElementById('r-email').value||'').trim();
+    const password=document.getElementById('r-pass').value||'';
+    if(!name){throw new Error('Saisissez votre nom complet');}
+    if(!email){throw new Error('Saisissez votre adresse email');}
+    if(password.length<6){throw new Error('Le mot de passe doit contenir au moins 6 caractères');}
+    
+    let r = null;
+    
+    // Try Electron API if available
+    if (typeof window.electronAPI !== 'undefined' && window.electronAPI.register) {
+      console.log('[Auth] Using Electron API...');
+      try {
+        await window.electronAPI.saveServerUrl(serverUrl);
+        r = await window.electronAPI.register({serverUrl, name, email, password});
+      } catch (eError) {
+        console.log('[Auth] Electron API failed, trying direct API:', eError.message);
+        r = null;
+      }
+    }
+    
+    // Fallback to direct API call
+    if (!r) {
+      console.log('[Auth] Using direct API registration...');
+      const response = await fetch(`${serverUrl}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        r = { status: 200, data: data };
+      } else {
+        const data = await response.json();
+        r = { status: response.status, data: data };
+      }
+    }
+    
+    if(!r||typeof r.status==='undefined'){throw new Error('Réponse inattendue du serveur');}
+    if(r.status===200||r.status===201){
+      token=r.data.token; 
+      user=r.data.user;
+      
+      // Save token locally
+      if (typeof window.electronAPI !== 'undefined' && window.electronAPI.saveToken) {
+        await window.electronAPI.saveToken(token);
+      } else {
+        localStorage.setItem('sc_token', token);
+      }
+      
+      showApp();
+      console.log('[Auth] ✅ Registration successful');
+    } else {
+      const msg=(r.data&&r.data.error)||('Erreur '+r.status);
+      throw new Error(msg);
+    }
+  }catch(e){
+    const msg=e.message||'Erreur inconnue';
+    errEl.textContent='❌ '+msg;
+    errEl.style.display='block';
+    console.error('[Auth] Registration error:', e);
+  }finally{
+    btn.disabled=false; btn.textContent='Créer mon compte →';
+  }
+}
+
+function showApp(){
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('titlebar').style.display='flex';
+  document.getElementById('layout').style.display='flex';
+  if(user){
+    document.getElementById('tb-name').textContent=user.name;
+    const pb=document.getElementById('tb-plan');
+    const pmap={free:'pf',starter:'ps_',pro:'pp',enterprise:'pe'};
+    pb.textContent=user.plan;pb.className=`plan-b ${pmap[user.plan]||'pf'}`;
+    const isPro=['pro','enterprise'].includes(user.plan);
+    document.getElementById('add-city-btn').style.display=isPro?'block':'none';
+    refreshRemaining();
+    loadSavedSearches();
+    loadPipeline();
+  }
+}
+async function refreshRemaining(){
+  try{
+    const r=await window.electronAPI.getMe(token);
+    if(r.status===200){user=r.data;document.getElementById('tb-rem').textContent=`${r.data.remaining} restantes`;}
+  }catch{}
+}
+function doLogout(){
+  document.getElementById('prof-overlay').classList.remove('open');
+  
+  // Clear token appropriately
+  if (typeof window.electronAPI !== 'undefined' && window.electronAPI.clearToken) {
+    window.electronAPI.clearToken();
+  } else {
+    localStorage.removeItem('sc_token');
+  }
+  
+  token='';
+  user=null;
+  chatHistory=[];
+  console.log('[Auth] Session cleared');
+  
+  document.getElementById('titlebar').style.display='none';
+  document.getElementById('layout').style.display='none';
+  document.getElementById('auth-screen').style.display='flex';
+}
+
+// PROFILE
+function openProfile(){
+  if(!user)return;
+  document.getElementById('p-av').textContent=(user.name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  document.getElementById('p-name').textContent=user.name;
+  document.getElementById('p-email').textContent=user.email;
+  document.getElementById('p-used').textContent=user.daily_used||0;
+  document.getElementById('p-limit').textContent=user.daily_limit||10;
+  document.getElementById('p-rem').textContent=user.remaining||0;
+  const PLANS=[{k:'free',icon:'🆓',n:'Gratuit',l:'10/jour',p:'—'},{k:'starter',icon:'🚀',n:'Starter',l:'200/jour',p:'5 000 FCFA/mois'},{k:'pro',icon:'⭐',n:'Pro',l:'500/jour',p:'15 000 FCFA/mois'},{k:'enterprise',icon:'🏢',n:'Entreprise',l:'Illimité',p:'50 000 FCFA/mois'}];
+  document.getElementById('plan-rows').innerHTML=PLANS.map(p=>`
+    <div class="plan-row ${p.k===user.plan?'curr':''}">
+      <div class="pr-icon">${p.icon}</div>
+      <div class="pr-info"><div class="pr-name">${p.n}</div><div class="pr-lim">${p.l}</div></div>
+      <div class="pr-price">${p.p}</div>
+      ${p.k===user.plan?`<button class="upg-btn dis" disabled>Actuel</button>`:`<button class="upg-btn" onclick="toast('Contactez votre admin pour passer au plan ${p.n}.')">Passer →</button>`}
+    </div>`).join('');
+  document.getElementById('prof-overlay').classList.add('open');
+}
+
+// CITIES
+function updateCities(){
+  const region=document.getElementById('f-region').value;
+  const cities=[...(REGION_CITIES[region]||REGION_CITIES['']),...(customCities[region]||[])];
+  document.getElementById('f-city').innerHTML=`<option value="">Toutes</option>`+cities.map(c=>`<option value="${c}">${c}</option>`).join('');
+}
+function openAC(){document.getElementById('ac-input').value='';document.getElementById('ac-overlay').classList.add('open');setTimeout(()=>document.getElementById('ac-input').focus(),100);}
+function confirmAC2(){
+  const city=document.getElementById('ac-input').value.trim();if(!city){toast('Saisissez un nom');return;}
+  const region=document.getElementById('f-region').value||'';
+  if(!customCities[region])customCities[region]=[];
+  if(!customCities[region].includes(city)){customCities[region].push(city);updateCities();document.getElementById('f-city').value=city;toast(`✅ "${city}" ajoutée`);}
+  document.getElementById('ac-overlay').classList.remove('open');
+}
+
+// SEARCH
+function launchSearch(){
+  const s=document.getElementById('f-sector').value,r=document.getElementById('f-region').value;
+  const c=document.getElementById('f-city').value,n=document.getElementById('f-name').value.trim();
+  runSearch('',{secteur:s,region:r,ville:c,name:n});
+}
+function searchFromTop(){
+  const q=document.getElementById('top-input').value.trim();if(!q)return;
+  runSearch(q,{});document.getElementById('top-input').value='';
+}
+function qs(sector,city,region){
+  document.getElementById('f-sector').value=sector;document.getElementById('f-region').value=region;
+  updateCities();document.getElementById('f-city').value=city;
+  runSearch('',{secteur:sector,region,ville:city});
+}
+
+async function runSearch(query,filters){
+  if(isSearching)return;
+  isSearching=true;
+  document.getElementById('gobtn').disabled=true;
+  document.getElementById('savebtn').style.display='none';
+  lastQuery=query;lastFilters=filters;
+  document.getElementById('results-area').innerHTML=`<div class="loading-state"><div class="spinner"></div><span style="font-size:13px;color:var(--tx3)">Recherche en cours...</span></div>`;
+  try{
+    const r=await window.electronAPI.search({token,query,filters,use_ai:true});
+    if(r.status===429&&r.data.upgrade){
+      document.getElementById('results-area').innerHTML=`<div style="padding:16px"><div class="upgrade-banner"><strong>⚠️ Limite journalière atteinte</strong><p>${r.data.error}</p><button onclick="openProfile()">Voir les plans →</button></div></div>`;
+    } else if(r.data.error){
+      document.getElementById('results-area').innerHTML=`<div style="padding:16px;color:var(--red);font-size:13.5px">❌ ${r.data.error}</div>`;
+    } else {
+      lastResults=r.data.results||[];
+      renderResults(r.data);
+      refreshRemaining();
+      if(lastResults.length>0) document.getElementById('savebtn').style.display='flex';
+    }
+  }catch(e){
+    document.getElementById('results-area').innerHTML=`<div style="padding:16px;color:var(--red);font-size:13.5px">❌ ${e.message}</div>`;
+  }
+  isSearching=false;
+  document.getElementById('gobtn').disabled=false;
+}
+
+function renderResults(data){
+  const area=document.getElementById('results-area');
+  area.innerHTML='';
+  const companies=data.results||[];
+  // Header
+  const hdr=document.createElement('div');
+  hdr.className='results-hdr';
+  const isDB=data.source==='database';
+  hdr.innerHTML=`
+    <div class="results-count"><strong>${companies.length}</strong> résultat${companies.length>1?'s':''} — <span class="source-badge ${isDB?'src-db':'src-nodata'}">${isDB?'✓ Base de données officielle':'Aucun résultat en base'}</span></div>`;
+  area.appendChild(hdr);
+
+  // No data notice + AI insights
+  if(!companies.length){
+    const notice=document.createElement('div');
+    notice.className='nodata-notice';
+    notice.innerHTML=`<strong>⚠️ Aucune entreprise trouvée dans la base de données</strong>
+    Ces critères de recherche ne correspondent à aucune entreprise enregistrée. L'administrateur peut enrichir la base via l'import Excel.
+    ${data.ai_text?`<hr style="margin:10px 0;border-color:rgba(230,101,0,.2)"><strong>Informations générales (IA) :</strong><br>${fmtChat(data.ai_text)}`:''}`;
+    area.appendChild(notice);
+    return;
+  }
+
+  companies.forEach((co,i)=>{
+    const id=`co-${Date.now()}-${i}`;
+    const initials=(co.raison_sociale||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const mapQ=encodeURIComponent(`${co.raison_sociale||''} ${co.ville||''} Cameroun`);
+    const mapSrc=`https://maps.google.com/maps?q=${mapQ}&output=embed&z=15`;
+    const card=document.createElement('div');
+    card.className='co-card';
+    card.innerHTML=`
+      <div class="co-head">
+        <div class="co-av">${initials}</div>
+        <div class="co-meta">
+          <div class="co-name" title="${co.raison_sociale||''}">${co.raison_sociale||'—'}${co.sigle?` <span style="font-size:12px;color:var(--tx3);font-weight:400">(${co.sigle})</span>`:''}</div>
+          <div class="co-line2">
+            ${co.secteur?`<span>📂 ${co.secteur}</span>`:''}
+            ${co.ville||co.region?`<span>📍 ${[co.ville,co.region].filter(Boolean).join(', ')}</span>`:''}
+          </div>
+          <div class="co-badges">
+            ${co.statut_juridique?`<span class="cbadge cb-type">${co.statut_juridique}</span>`:''}
+            ${co.niu?`<span class="cbadge cb-niu">NIU: ${co.niu}</span>`:''}
+            ${co.rccm?`<span class="cbadge cb-green">RCCM ✓</span>`:''}
+          </div>
+        </div>
+      </div>
+      <div class="co-body">
+        ${co.activite_principale?`<div class="co-f full"><span class="co-fl">Activité principale</span><span class="co-fv full">${co.activite_principale}</span></div>`:''}
+        ${co.dirigeant?`<div class="co-f"><span class="co-fl">👤 Dirigeant</span><span class="co-fv">${co.dirigeant}</span></div>`:''}
+        ${co.rccm?`<div class="co-f"><span class="co-fl">📋 RCCM</span><span class="co-fv mono">${co.rccm}</span></div>`:''}
+        ${co.telephone?`<div class="co-f"><span class="co-fl">📞 Téléphone</span><span class="co-fv phone">${co.telephone}</span></div>`:''}
+        ${co.email?`<div class="co-f"><span class="co-fl">📧 Email</span><span class="co-fv">${co.email}</span></div>`:''}
+        ${co.site_web?`<div class="co-f"><span class="co-fl">🌐 Site web</span><span class="co-fv link" onclick="openLink('http://${co.site_web}')">${co.site_web}</span></div>`:''}
+        ${co.adresse?`<div class="co-f full"><span class="co-fl">🏠 Adresse</span><span class="co-fv">${co.adresse}</span></div>`:''}
+        ${co.centre_rattachement?`<div class="co-f"><span class="co-fl">Centre de rattachement</span><span class="co-fv">${co.centre_rattachement}</span></div>`:''}
+      </div>
+      <div class="co-footer">
+        <button class="ca maps" onclick="toggleMap('${id}','${mapSrc}')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          Localiser
+        </button>
+        <button class="ca" style="background:var(--gl);color:var(--g)" onclick="addToPipelineFromCard(${i})">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14m-7-7h14"/></svg>
+          Pipeline
+        </button>
+        <button class="ca share" onclick="shareCard(${i})">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          Partager
+        </button>
+      </div>
+      <div class="map-panel" id="map-${id}">
+        <button class="map-close" onclick="toggleMap('${id}','')">✕ Fermer la carte</button>
+        <iframe loading="lazy" allowfullscreen></iframe>
+      </div>`;
+    area.appendChild(card);
+  });
+}
+
+function addToPipelineFromCard(idx){
+  const co=lastResults[idx];if(!co)return;
+  openAddPipeline({...co,company_name:co.raison_sociale});
+}
+
+function toggleMap(id,src){
+  const p=document.getElementById(`map-${id}`);if(!p)return;
+  const wasOpen=p.classList.contains('open');
+  p.classList.toggle('open');
+  if(!wasOpen&&src){const iframe=p.querySelector('iframe');if(iframe&&!iframe.src)iframe.src=src;}
+}
+
+function shareCard(idx){
+  const co=lastResults[idx];if(!co){toast('Erreur');return;}
+  const txt=`🏢 *${co.raison_sociale||'—'}*${co.sigle?' ('+co.sigle+')':''}
+📂 ${co.secteur||'—'} | ${[co.ville,co.region].filter(Boolean).join(', ')||'—'}
+${co.activite_principale?'💼 '+co.activite_principale+'\n':''}${co.dirigeant?'👤 '+co.dirigeant+'\n':''}${co.telephone?'📞 '+co.telephone+'\n':''}${co.email?'📧 '+co.email+'\n':''}${co.site_web?'🌐 '+co.site_web+'\n':''}${co.rccm?'📋 RCCM: '+co.rccm+'\n':''}${co.niu?'🔑 NIU: '+co.niu+'\n':''}${co.adresse?'🏠 '+co.adresse+'\n':''}
+_Partagé via Sales Companion_`;
+  navigator.clipboard.writeText(txt).then(()=>toast('✅ Fiche copiée — prête pour WhatsApp / email')).catch(()=>toast('Erreur de copie'));
+}
+
+function openLink(url){try{window.electronAPI.openExternal&&window.electronAPI.openExternal(url);}catch{}}
+
+// SAVED SEARCHES
+async function loadSavedSearches(){
+  try{
+    const r=await window.electronAPI.loadSavedSearches(token);
+    const searches=r.data||[];
+    const list=document.getElementById('saved-list');
+    if(!searches.length){list.innerHTML=`<div class="no-saved">Aucune recherche sauvegardée</div>`;return;}
+    list.innerHTML=searches.map(s=>`
+      <div class="saved-item" onclick="loadSavedSearch(${JSON.stringify(s).replace(/"/g,'&quot;')})">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" style="flex-shrink:0;opacity:.4"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+        <span class="saved-item-title">${s.title}</span>
+        <button class="saved-del" onclick="event.stopPropagation();deleteSaved(${s.id})">✕</button>
+      </div>`).join('');
+  }catch{}
+}
+
+function loadSavedSearch(s){
+  if(s.results&&s.results.length>0){
+    lastResults=s.results;lastFilters=s.filters||{};lastQuery=s.query||'';
+    renderResults({source:'database',results:s.results});
+    document.getElementById('savebtn').style.display='flex';
+  } else {
+    const f=s.filters||{};
+    qs(f.secteur||'',f.ville||'',f.region||'');
+  }
+}
+
+async function deleteSaved(id){
+  await window.electronAPI.deleteSavedSearch(token,id);
+  toast('🗑️ Recherche supprimée');
+  loadSavedSearches();
+}
+
+function openSaveModal(){
+  const parts=[];
+  if(lastFilters.secteur)parts.push(lastFilters.secteur);
+  if(lastFilters.ville)parts.push(lastFilters.ville);
+  else if(lastFilters.region)parts.push(lastFilters.region);
+  if(lastQuery)parts.push(lastQuery.slice(0,30));
+  const today=new Date().toLocaleDateString('fr-FR',{month:'short',year:'numeric'});
+  document.getElementById('save-title').value=parts.length?parts.join(' · ')+` — ${today}`:'Recherche — '+today;
+  document.getElementById('save-overlay').classList.add('open');
+  setTimeout(()=>document.getElementById('save-title').select(),100);
+}
+
+async function confirmSave(){
+  const title=document.getElementById('save-title').value.trim();
+  if(!title){toast('Saisissez un titre');return;}
+  try{
+    await window.electronAPI.saveSearch(token,{title,query:lastQuery,filters:lastFilters,results:lastResults.slice(0,20)});
+    toast('✅ Recherche sauvegardée');
+    document.getElementById('save-overlay').classList.remove('open');
+    loadSavedSearches();
+  }catch(e){toast('Erreur: '+e.message);}
+}
+
+// CHAT
+function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,90)+'px';}
+function handleChatKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat();}}
+
+async function sendChat(){
+  if(isChatting)return;
+  const inp=document.getElementById('chat-inp');
+  const text=inp.value.trim();if(!text)return;
+  inp.value='';inp.style.height='auto';
+  addChatMsg('user',text.replace(/</g,'&lt;'));
+  chatHistory.push({role:'user',content:text});
+  isChatting=true;document.getElementById('send-btn').disabled=true;
+  const loadEl=addChatMsg('bot','',true);
+  try{
+    const r=await window.electronAPI.chat({token,messages:chatHistory.slice(-8)});
+    loadEl.remove();
+    if(r.status===429&&r.data.upgrade){
+      addChatMsg('bot',`<div class="upgrade-banner" style="margin:0"><strong>⚠️ Limite atteinte</strong><p>${r.data.error}</p><button onclick="openProfile()">Voir les plans</button></div>`);
+    } else if(r.data.error){
+      addChatMsg('bot',`Erreur : ${r.data.error}`);
+    } else {
+      const reply=r.data.choices?.[0]?.message?.content||'—';
+      chatHistory.push({role:'assistant',content:reply});
+      addChatMsg('bot',fmtChat(reply));
+      refreshRemaining();
+    }
+  }catch(e){loadEl.remove();addChatMsg('bot',`Erreur : ${e.message}`);}
+  isChatting=false;document.getElementById('send-btn').disabled=false;
+}
+
+function addChatMsg(role,html,loading=false){
+  const c=document.getElementById('chat-msgs'),d=document.createElement('div');
+  d.className=`cmsg ${role}`;
+  d.innerHTML=`<div class="cav ${role}">${role==='bot'?'SC':'Vous'}</div><div class="cbbl ${role}${loading?' loading':''}">
+    ${loading?'<span class="dot"></span><span class="dot"></span><span class="dot"></span>':html}</div>`;
+  c.appendChild(d);c.scrollTop=c.scrollHeight;return d;
+}
+
+function fmtChat(t){
+  return t.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/^#{1,3}\s+(.+)$/gm,'<strong style="display:block;margin-top:8px;margin-bottom:3px">$1</strong>')
+    .replace(/^- (.+)$/gm,'<li>$1</li>').replace(/(<li>.*<\/li>\n?)+/g,s=>`<ul>${s}</ul>`)
+    .replace(/\n{2,}/g,'</p><p style="margin-top:5px">').replace(/\n/g,'<br>')
+    .replace(/^(?!<)/,'<p>').replace(/(?!>)$/,'</p>');
+}
+
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
+
+// ── PIPELINE ────────────────────────────────────────────────────
+let currentPipelineTab='prospection', pipelineData=[], addPipelineDefault={};
+
+async function loadPipeline(){
+  try{
+    const r=await window.electronAPI.pipeline('GET',token,null,null);
+    pipelineData=r.data||[];
+    updatePipelineCounts();
+    renderPipeline();
+  }catch{}
+}
+
+function updatePipelineCounts(){
+  const counts={prospection:0,negociation:0,conclue:0};
+  pipelineData.forEach(p=>{if(counts[p.status]!==undefined)counts[p.status]++;});
+  document.getElementById('cnt-prosp').textContent=counts.prospection;
+  document.getElementById('cnt-neg').textContent=counts.negociation;
+  document.getElementById('cnt-ok').textContent=counts.conclue;
+}
+
+function switchPipelineTab(tab,el){
+  currentPipelineTab=tab;
+  document.querySelectorAll('.ptab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderPipeline();
+}
+
+function renderPipeline(){
+  const list=document.getElementById('pipeline-list');
+  const items=pipelineData.filter(p=>p.status===currentPipelineTab);
+  if(!items.length){
+    const labels={prospection:'prospects',negociation:'négociations',conclue:'ventes conclues'};
+    list.innerHTML='<div class="pipeline-empty"><div class="pe-icon">📋</div><p>Aucun'+' '+labels[currentPipelineTab]+'<br>pour le moment</p></div>';
+    return;
+  }
+  list.innerHTML=items.map(p=>{
+    const id=p.id;
+    const note=p.note||'';
+    const nextAction=p.next_action||'';
+    const nextDate=p.next_date||'';
+    let actions='';
+    if(p.status==='prospection') actions+='<button class="pact to-neg" data-id="'+id+'" data-action="move" data-status="negociation">→ Négociation</button>';
+    if(p.status==='negociation') actions+='<button class="pact to-ok" data-id="'+id+'" data-action="move" data-status="conclue">✓ Conclure</button><button class="pact to-prosp" data-id="'+id+'" data-action="move" data-status="prospection">← Reculer</button>';
+    if(p.status==='conclue') actions+='<span style="font-size:11px;color:var(--g);font-weight:600">🎉 Vente conclue</span>';
+    actions+='<button class="pact" style="background:var(--bg3);color:var(--tx2)" data-id="'+id+'" data-action="note" data-note="'+note.replace(/"/g,'&quot;')+'" data-next-action="'+nextAction.replace(/"/g,'&quot;')+'" data-next-date="'+nextDate.replace(/"/g,'&quot;')+'">✏️ Note</button>';
+    actions+='<button class="pact del" data-id="'+id+'" data-action="delete">✕</button>';
+    return '<div class="pcard '+p.status+'">'+
+      '<div class="pcard-name">'+p.company_name+'</div>'+
+      '<div class="pcard-sub">'+
+        (p.company_sector?'<span>📂 '+p.company_sector+'</span>':'')+
+        (p.company_city?'<span>📍 '+p.company_city+'</span>':'')+
+        (p.company_phone?'<span>📞 '+p.company_phone+'</span>':'')+
+      '</div>'+
+      (note?'<div class="pcard-note">'+note+'</div>':'')+
+      (nextAction?'<div class="pcard-next">📅 '+nextAction+(nextDate?' — '+nextDate:'')+'</div>':'')+
+      '<div class="pcard-actions">'+actions+'</div>'+
+    '</div>';
+  }).join('');
+  // Event delegation for pipeline card buttons
+  list.onclick=function(e){
+    const btn=e.target.closest('[data-action]');
+    if(!btn)return;
+    const action=btn.dataset.action;
+    const id=+btn.dataset.id;
+    if(action==='move') moveStatus(id,btn.dataset.status);
+    else if(action==='delete') deletePipeline(id);
+    else if(action==='note') openEditNote(id,btn.dataset.note,btn.dataset.nextAction,btn.dataset.nextDate);
+  };
+}
+
+function openAddPipeline(co){
+  addPipelineDefault=co||{};
+  document.getElementById('pip-name').value=co?.raison_sociale||co?.company_name||'';
+  document.getElementById('pip-sector').value=co?.secteur||'';
+  document.getElementById('pip-city').value=co?.ville||'';
+  document.getElementById('pip-phone').value=co?.telephone||'';
+  document.getElementById('pip-email').value=co?.email||'';
+  document.getElementById('pip-note').value='';
+  document.getElementById('pip-status').value='prospection';
+  document.getElementById('pip-overlay').classList.add('open');
+}
+
+async function confirmAddPipeline(){
+  const name=document.getElementById('pip-name').value.trim();
+  if(!name){toast("Saisissez le nom de l'entreprise");return;}
+  try{
+    const r=await window.electronAPI.pipeline('POST',token,null,{
+      company_name:name,
+      company_sector:document.getElementById('pip-sector').value,
+      company_city:document.getElementById('pip-city').value,
+      company_phone:document.getElementById('pip-phone').value,
+      company_email:document.getElementById('pip-email').value,
+      status:document.getElementById('pip-status').value,
+      note:document.getElementById('pip-note').value,
+      company_id:addPipelineDefault.id||null,
+      company_director:addPipelineDefault.dirigeant||null,
+    });
+    if(r.status===409){toast('⚠️ Déjà dans le pipeline');document.getElementById('pip-overlay').classList.remove('open');return;}
+    if(r.status!==200){toast('Erreur: '+(r.data.error||''));return;}
+    toast('✅ Ajouté au pipeline');
+    document.getElementById('pip-overlay').classList.remove('open');
+    loadPipeline();
+  }catch(e){toast('Erreur: '+e.message);}
+}
+
+async function moveStatus(id,status){
+  await window.electronAPI.pipeline('PUT',token,id,{status});
+  loadPipeline();
+  toast(status==='conclue'?'🎉 Vente conclue !':status==='negociation'?'🤝 Passé en négociation':'↩ Repassé en prospection');
+}
+
+function openEditNote(id,note,action,date){
+  document.getElementById('note-pip-id').value=id;
+  document.getElementById('note-text').value=note;
+  document.getElementById('note-action').value=action;
+  document.getElementById('note-date').value=date;
+  document.getElementById('note-overlay').classList.add('open');
+}
+
+async function saveNote(){
+  const id=document.getElementById('note-pip-id').value;
+  await window.electronAPI.pipeline('PUT',token,id,{
+    note:document.getElementById('note-text').value,
+    next_action:document.getElementById('note-action').value,
+    next_date:document.getElementById('note-date').value,
+  });
+  toast('✅ Note enregistrée');
+  document.getElementById('note-overlay').classList.remove('open');
+  loadPipeline();
+}
+
+async function deletePipeline(id){
+  if(!confirm('Retirer du pipeline ?'))return;
+  await window.electronAPI.pipeline('DELETE',token,id,null);
+  toast('🗑️ Retiré du pipeline');
+  loadPipeline();
+}
+</script>
+</body>
+</html>

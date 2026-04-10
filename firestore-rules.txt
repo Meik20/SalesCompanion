@@ -1,0 +1,64 @@
+/**
+ * Firestore Security Rules for Sales Companion
+ * 
+ * Apply these rules in Firebase Console:
+ * - Go to Firestore Database → Rules
+ * - Replace all content with the code below
+ * - Click Publish
+ */
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Users collection
+    // - Users can only read/write their own document
+    // - Admins can read/write all users
+    match /users/{uid} {
+      allow read, write: if request.auth.uid == uid;
+      allow read: if request.auth != null && isAdmin(request.auth.uid);
+      
+      function isAdmin(uid) {
+        return get(/databases/$(database)/documents/users/$(uid)).data.role == 'admin';
+      }
+    }
+    
+    // Companies collection (public read, authenticated write)
+    match /companies/{document=**} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if request.auth != null && canModifyCompany();
+      
+      function canModifyCompany() {
+        let user = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+        return user.role == 'admin' || user.role == 'importer';
+      }
+    }
+    
+    // Logs collection (immutable, authenticated reads only)
+    match /logs/{document=**} {
+      allow read: if request.auth != null;
+      allow write: if false;  // Logs cannot be modified, only server can create
+    }
+    
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
+/**
+ * HOW TO APPLY THESE RULES:
+ * 
+ * 1. Go to https://console.firebase.google.com
+ * 2. Select your project → Firestore Database
+ * 3. Click "Rules" tab at the top
+ * 4. Replace all content with the rules above
+ * 5. Click "Publish"
+ * 
+ * IMPORTANT:
+ * - Test mode allows anyone to access (development only)
+ * - Production mode requires these security rules
+ * - Users can only access their own data
+ * - Admins can manage everything
+ */

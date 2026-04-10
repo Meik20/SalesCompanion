@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Sales Companion</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --g:#1B7A3E;--gl:#e8f5ee;--gm:#2ea05a;--gd:#145f2f;
+  --bg:#f0f2f5;--bg2:#fff;--bg3:#f8f9fa;
+  --bd:rgba(0,0,0,0.07);--bd2:rgba(0,0,0,0.13);
+  --tx:#111;--tx2:#444;--tx3:#888;
+  --r:8px;--r2:14px;--sh:0 2px 8px rgba(0,0,0,0.07);--sh2:0 4px 20px rgba(0,0,0,0.11);
+  --blue:#1a73e8;--bl:#e8f0fe;--red:#e74c3c;--rl:#fdf0ef;--gold:#f39c12;--gdl:#fef9ec;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh}
+
+/* AUTH */
+.auth{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,var(--gd),var(--g))}
+.auth-card{background:#fff;border-radius:18px;padding:36px 32px;width:380px;box-shadow:0 20px 60px rgba(0,0,0,0.25)}
+.auth-logo{text-align:center;margin-bottom:24px}
+.auth-icon{width:56px;height:56px;background:var(--g);border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:24px}
+.auth-logo h1{font-size:19px;font-weight:700}
+.auth-logo h1 span{color:var(--g)}
+.auth-logo p{font-size:12px;color:var(--tx3);margin-top:3px}
+.fg{margin-bottom:14px}
+.fg label{display:block;font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em}
+.fg input{width:100%;padding:10px 14px;border:1.5px solid var(--bd2);border-radius:var(--r);font-size:14px;outline:none;transition:border-color .15s}
+.fg input:focus{border-color:var(--g)}
+.auth-btn{width:100%;padding:11px;background:var(--g);color:#fff;border:none;border-radius:var(--r);font-size:14px;font-weight:600;cursor:pointer;transition:all .15s;margin-top:4px}
+.auth-btn:hover{background:var(--gm)}
+.auth-err{color:var(--red);font-size:12px;margin-top:8px;display:none;text-align:center}
+
+/* APP */
+.app{display:none;min-height:100vh}
+.sidebar{width:230px;background:linear-gradient(180deg,var(--gd) 0%,var(--g) 100%);position:fixed;top:0;left:0;bottom:0;display:flex;flex-direction:column}
+.sb-brand{padding:20px 18px 16px;border-bottom:1px solid rgba(255,255,255,.1)}
+.sb-brand .name{color:#fff;font-size:14px;font-weight:700}
+.sb-brand .name em{opacity:.65;font-style:normal;font-weight:400}
+.sb-brand .sub{color:rgba(255,255,255,.5);font-size:11px;margin-top:2px}
+.sb-nav{flex:1;padding:10px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--r);color:rgba(255,255,255,.7);font-size:13px;cursor:pointer;transition:all .12s;margin-bottom:2px;user-select:none}
+.nav-item:hover{background:rgba(255,255,255,.12);color:#fff}
+.nav-item.active{background:rgba(255,255,255,.2);color:#fff;font-weight:600}
+.nav-item svg{width:15px;height:15px;flex-shrink:0}
+.sb-footer{padding:14px 18px;border-top:1px solid rgba(255,255,255,.1)}
+.sb-user{color:rgba(255,255,255,.7);font-size:12px;margin-bottom:6px}
+.lg-btn{width:100%;padding:7px;background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:6px;font-size:12.5px;cursor:pointer;transition:all .12s}
+.lg-btn:hover{background:rgba(255,255,255,.25)}
+
+.main{margin-left:230px;padding:24px}
+.page{display:none}
+.page.active{display:block}
+.page-title{font-size:22px;font-weight:700;margin-bottom:20px;letter-spacing:-.3px}
+
+/* STAT CARDS */
+.stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px}
+.stat-card{background:var(--bg2);border-radius:var(--r2);padding:14px 16px;box-shadow:var(--sh);border-left:4px solid var(--g)}
+.stat-card.blue{border-left-color:var(--blue)}.stat-card.gold{border-left-color:var(--gold)}.stat-card.red{border-left-color:var(--red)}.stat-card.teal{border-left-color:#0097a7}
+.stat-lbl{font-size:11px;color:var(--tx3);text-transform:uppercase;font-weight:600;letter-spacing:.04em;margin-bottom:5px}
+.stat-val{font-size:26px;font-weight:700;line-height:1}
+.stat-sub{font-size:11px;color:var(--tx3);margin-top:4px}
+
+.card{background:var(--bg2);border-radius:var(--r2);padding:18px;box-shadow:var(--sh);margin-bottom:16px}
+.card-title{font-size:14px;font-weight:700;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between}
+.card-sub{font-size:12px;color:var(--tx3);font-weight:400}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px}
+
+/* TABLE */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{background:var(--bg3);padding:9px 12px;text-align:left;font-size:10.5px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--bd2)}
+td{padding:9px 12px;border-bottom:1px solid var(--bd);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafafa}
+.td-sm{font-size:11px;color:var(--tx3)}
+.td-bold{font-weight:600}
+.td-trunc{max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700}
+.b-free{background:#f0f0f0;color:#555}.b-starter{background:var(--bl);color:var(--blue)}
+.b-pro{background:var(--gdl);color:var(--gold)}.b-enterprise{background:var(--gl);color:var(--g)}
+.b-active{background:var(--gl);color:var(--g)}.b-inactive{background:var(--rl);color:var(--red)}
+
+/* BUTTONS */
+.btn{padding:7px 14px;border-radius:var(--r);border:none;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s}
+.btn-g{background:var(--g);color:#fff}.btn-g:hover{background:var(--gm)}
+.btn-red{background:var(--rl);color:var(--red)}.btn-red:hover{opacity:.8}
+.btn-gray{background:var(--bg3);border:1px solid var(--bd2);color:var(--tx2)}.btn-gray:hover{background:var(--bd)}
+.btn-sm{padding:5px 10px;font-size:11.5px}
+
+/* SEARCH/FILTER BAR */
+.filter-bar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.filter-bar input,.filter-bar select{padding:7px 11px;border:1.5px solid var(--bd2);border-radius:var(--r);font-size:12.5px;outline:none;font-family:inherit;transition:border-color .15s}
+.filter-bar input:focus,.filter-bar select:focus{border-color:var(--g)}
+.filter-bar input{flex:1;min-width:200px}
+
+/* PLAN SELECT */
+.plan-sel{padding:5px 8px;border:1px solid var(--bd2);border-radius:6px;font-size:12px;outline:none;cursor:pointer;font-family:inherit}
+.plan-sel:focus{border-color:var(--g)}
+
+/* IMPORT ZONE */
+.import-zone{border:2px dashed var(--bd2);border-radius:var(--r2);padding:32px;text-align:center;transition:all .15s;cursor:pointer;background:var(--bg3)}
+.import-zone:hover,.import-zone.drag-over{border-color:var(--g);background:var(--gl)}
+.import-icon{font-size:40px;margin-bottom:12px}
+.import-zone h3{font-size:16px;font-weight:600;margin-bottom:6px}
+.import-zone p{font-size:13px;color:var(--tx3);margin-bottom:16px}
+#file-input{display:none}
+.browse-btn{padding:9px 22px;background:var(--g);color:#fff;border:none;border-radius:var(--r);font-size:13.5px;font-weight:600;cursor:pointer;transition:all .15s}
+.browse-btn:hover{background:var(--gm)}
+.import-info{background:var(--bl);border-radius:var(--r);padding:12px 14px;margin-top:16px;font-size:12.5px;color:var(--blue)}
+.import-info ul{padding-left:16px;margin-top:6px}
+.import-info li{margin:3px 0}
+
+/* PROGRESS */
+.progress-wrap{display:none;margin-top:16px}
+.progress-bar{height:6px;background:var(--bd2);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;background:var(--g);border-radius:3px;transition:width .3s}
+.progress-text{font-size:12.5px;color:var(--tx2);margin-top:6px;text-align:center}
+
+/* RESULT BOX */
+.result-box{display:none;margin-top:14px;padding:14px;border-radius:var(--r);font-size:13px}
+.result-box.ok{background:var(--gl);border:1px solid rgba(27,122,62,.3)}
+.result-box.err{background:var(--rl);border:1px solid rgba(231,76,60,.3);color:var(--red)}
+.result-stats{display:flex;gap:16px;flex-wrap:wrap;margin-top:8px}
+.rs-item{display:flex;flex-direction:column;gap:2px}
+.rs-val{font-size:18px;font-weight:700;color:var(--g)}
+.rs-lbl{font-size:11px;color:var(--tx3)}
+
+/* IMPORT LOGS */
+.ilog-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--bd);font-size:12.5px}
+.ilog-row:last-child{border-bottom:none}
+.ilog-filename{font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ilog-stat{font-size:11px;padding:2px 7px;border-radius:10px}
+.ilog-ok{background:var(--gl);color:var(--g)}
+.ilog-warn{background:var(--gdl);color:var(--gold)}
+
+/* CONFIG */
+.cfg-grp{margin-bottom:18px}
+.cfg-grp label{display:block;font-size:13px;font-weight:600;color:var(--tx);margin-bottom:6px}
+.cfg-grp input{width:100%;padding:10px 14px;border:1.5px solid var(--bd2);border-radius:var(--r);font-size:13px;font-family:'Courier New',monospace;outline:none;transition:border-color .15s;max-width:520px}
+.cfg-grp input:focus{border-color:var(--g)}
+.cfg-grp small{display:block;font-size:11.5px;color:var(--tx3);margin-top:5px;line-height:1.5;max-width:520px}
+.ok-msg{display:none;color:var(--g);font-size:13px;margin-top:10px;font-weight:600}
+
+/* BAR CHART */
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:7px}
+.bar-label{font-size:12px;color:var(--tx2);width:160px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar-track{flex:1;height:8px;background:var(--bd2);border-radius:4px;overflow:hidden}
+.bar-fill{height:100%;background:var(--g);border-radius:4px;transition:width .4s}
+.bar-count{font-size:12px;font-weight:600;color:var(--tx2);min-width:40px;text-align:right}
+
+/* PAGINATION */
+.pagination{display:flex;gap:6px;align-items:center;justify-content:flex-end;margin-top:14px}
+.page-btn{padding:5px 12px;border:1px solid var(--bd2);border-radius:6px;background:var(--bg2);cursor:pointer;font-size:12.5px;transition:all .15s}
+.page-btn:hover{border-color:var(--g);color:var(--g)}
+.page-btn.active{background:var(--g);color:#fff;border-color:var(--g)}
+.page-info{font-size:12.5px;color:var(--tx3)}
+
+.toast{position:fixed;bottom:20px;right:20px;background:#111;color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
+</style>
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+<script src="firestore-storage.js"></script>
+<script src="firestore-admin-hooks.js"></script>
+<script>
+// Firebase initialization inline
+window.firebaseConfig = {
+  apiKey: "AIzaSyCVJxyeysHWDQ7yECTb-GApJz7u8s5l7N0",
+  authDomain: "sales-companion-9cf56.firebaseapp.com",
+  projectId: "sales-companion-9cf56",
+  storageBucket: "sales-companion-9cf56.firebasestorage.app",
+  messagingSenderId: "1058275289756",
+  appId: "1:1058275289756:web:534cd79d5eb373348f5b59"
+};
+
+// Wait for Firebase to be available
+window.waitForFirebase = async function(timeout = 20000) {
+  const startTime = Date.now();
+  let attempts = 0;
+  while (typeof firebase === 'undefined') {
+    if (Date.now() - startTime > timeout) {
+      console.error('[Firebase] CDN timeout:', timeout + 'ms');
+      throw new Error('Firebase CDN failed to load - check network in DevTools');
+    }
+    await new Promise(resolve => setTimeout(resolve, 200));
+    attempts++;
+  }
+  console.log('[Firebase] CDN loaded in', (Date.now() - startTime), 'ms after', attempts, 'attempts');
+  return firebase;
+};
+
+// Initialize Firebase when page loads
+window.initFirebaseWhenReady = async function() {
+  try {
+    console.log('[Firebase] Initialization starting...');
+    await window.waitForFirebase();
+    
+    if (!firebase.apps.length) {
+      firebase.initializeApp(window.firebaseConfig);
+      console.log('[Firebase] Initialized successfully');
+    }
+  } catch (error) {
+    console.error('[Firebase] Init failed:', error.message);
+  }
+};
+
+// Start initialization immediately
+window.initFirebaseWhenReady();
+</script>
+</head>
+<body>
+
+<!-- AUTH -->
+<div class="auth" id="auth-page">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="auth-icon">🏢</div>
+      <h1>SALES <span>COMPANION</span></h1>
+      <p>Panel Administrateur</p>
+    </div>
+    <div class="fg"><label>Identifiant</label><input type="text" id="login-user" value="admin" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <div class="fg"><label>Mot de passe</label><input type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <div class="auth-err" id="login-err"></div>
+    <button class="auth-btn" id="l-btn" onclick="doLogin()">Accéder au panel →</button>
+  </div>
+</div>
+
+<!-- FORCE CHANGE PASSWORD -->
+<div class="auth" id="force-password-page" style="display:none">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="auth-icon">🔒</div>
+      <h1>CHANGEMENT <span>OBLIGATOIRE</span></h1>
+      <p>Sécurité administrative</p>
+    </div>
+    <div style="background:#fef9ec;border:1px solid #f39c12;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:#555;line-height:1.5">
+      ⚠️ <strong>Vous utilisez le mot de passe par défaut.</strong><br>
+      Pour des raisons de sécurité, vous devez le changer avant de pouvoir continuer.
+    </div>
+    <div class="fg"><label>Nouveau mot de passe</label><input type="password" id="new-pass-1" placeholder="••••••••" onkeydown="if(event.key==='Enter')doForceChangePassword()"></div>
+    <div class="fg"><label>Confirmer</label><input type="password" id="new-pass-2" placeholder="••••••••" onkeydown="if(event.key==='Enter')doForceChangePassword()"></div>
+    <div class="auth-err" id="force-pass-err"></div>
+    <button class="auth-btn" id="fp-btn" onclick="doForceChangePassword()" style="background:#f39c12">Mettre à jour le mot de passe</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="app" id="app">
+  <div class="sidebar">
+    <div class="sb-brand">
+      <div class="name">SALES <em>COMPANION</em></div>
+      <div class="sub">Administration</div>
+    </div>
+    <div class="sb-nav">
+      <div class="nav-item active" data-page="dashboard" onclick="showPage('dashboard',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        Tableau de bord
+      </div>
+      <div class="nav-item" data-page="import" onclick="showPage('import',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Import données
+      </div>
+      <div class="nav-item" data-page="companies" onclick="showPage('companies',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Entreprises
+      </div>
+      <div class="nav-item" data-page="users" onclick="showPage('users',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Utilisateurs
+      </div>
+      <div class="nav-item" data-page="logs" onclick="showPage('logs',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Activité
+      </div>
+      <div class="nav-item" data-page="config" onclick="showPage('config',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+        Configuration
+      </div>
+    </div>
+    <div class="sb-footer">
+      <div class="sb-user" id="admin-user">admin</div>
+      <button class="lg-btn" onclick="logout()">← Déconnexion</button>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-title">Tableau de bord</div>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-lbl">Utilisateurs</div><div class="stat-val" id="s-users">—</div><div class="stat-sub">Comptes enregistrés</div></div>
+        <div class="stat-card teal"><div class="stat-lbl">Entreprises</div><div class="stat-val" id="s-cos">—</div><div class="stat-sub">Dans la base</div></div>
+        <div class="stat-card blue"><div class="stat-lbl">Recherches/aujourd'hui</div><div class="stat-val" id="s-today">—</div><div class="stat-sub">Requêtes actives</div></div>
+        <div class="stat-card gold"><div class="stat-lbl">Total recherches</div><div class="stat-val" id="s-total">—</div><div class="stat-sub">Depuis le lancement</div></div>
+        <div class="stat-card red"><div class="stat-lbl">API Groq</div><div class="stat-val" id="s-api" style="font-size:14px;padding-top:8px">—</div><div class="stat-sub" id="s-api-sub"></div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Entreprises par région</div>
+          <div id="region-bars"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Top secteurs d'activité</div>
+          <div id="sector-bars"></div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Répartition utilisateurs <span class="card-sub">par plan</span></div>
+          <div class="grid-3" id="plan-summary"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Activité récente</div>
+          <table><thead><tr><th>Utilisateur</th><th>Requête</th><th>Résultats</th><th>Plan</th></tr></thead>
+          <tbody id="recent-logs"></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- IMPORT -->
+    <div class="page" id="page-import">
+      <div class="page-title">Import de données</div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Importer un fichier Excel / CSV</div>
+          <div class="import-zone" id="import-zone" onclick="document.getElementById('file-input').click()" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropFile(event)">
+            <div class="import-icon">📊</div>
+            <h3>Glissez votre fichier ici</h3>
+            <p>ou cliquez pour parcourir</p>
+            <button class="browse-btn" onclick="event.stopPropagation();document.getElementById('file-input').click()">Choisir un fichier</button>
+            <input type="file" id="file-input" accept=".xlsx,.xls,.csv" onchange="handleFile(event)">
+          </div>
+          <div class="import-info">
+            <strong>📋 Colonnes reconnues automatiquement :</strong>
+            <ul>
+              <li><strong>RAISON_SOCIALE</strong> — Nom de l'entreprise (obligatoire)</li>
+              <li><strong>SIGLE</strong> — Abréviation / acronyme</li>
+              <li><strong>NIU</strong> — Numéro d'identification unique (clé dédoublonnage)</li>
+              <li><strong>ACTIVITE_PRINCIPALE</strong> — Secteur auto-détecté</li>
+              <li><strong>CENTRE_DE_RATTACHEMENT</strong> — Région/Ville auto-détectées</li>
+              <li>+ TELEPHONE, EMAIL, DIRIGEANT, RCCM (si disponibles)</li>
+            </ul>
+          </div>
+          <div class="progress-wrap" id="progress-wrap">
+            <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+            <div class="progress-text" id="progress-text">Traitement en cours...</div>
+          </div>
+          <div class="result-box" id="result-box"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Historique des imports <span class="card-sub" id="import-count"></span></div>
+          <div id="import-logs"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMPANIES -->
+    <div class="page" id="page-companies">
+      <div class="page-title">Base de données entreprises</div>
+      <div class="card">
+        <div class="card-title">
+          <span>Entreprises <span id="co-count" class="card-sub"></span></span>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span id="co-total-badge" style="font-size:13px;color:var(--g);font-weight:700"></span>
+            <button class="btn btn-g btn-sm" onclick="exportCompanies()" style="white-space:nowrap">⬇️ Télécharger CSV</button>
+            <button class="btn btn-g btn-sm" onclick="exportCompaniesToRailway()" style="white-space:nowrap">↗️ Exporter vers Railway</button>
+            <button class="btn btn-red btn-sm" onclick="deleteAllCompanies()" style="white-space:nowrap">🗑️ Vider la base</button>
+          </div>
+        </div>
+        <div class="filter-bar">
+          <input type="text" id="co-search" placeholder="Rechercher par nom, NIU, activité..." oninput="debounceCoSearch()">
+          <select id="co-region" onchange="loadCompanies(1)">
+            <option value="">Toutes les régions</option>
+            <option>Littoral</option><option>Centre</option><option>Ouest</option><option>Nord</option>
+            <option>Nord-Ouest</option><option>Extrême-Nord</option><option>Adamaoua</option>
+            <option>Est</option><option>Sud</option><option>Sud-Ouest</option>
+          </select>
+          <select id="co-secteur" onchange="loadCompanies(1)">
+            <option value="">Tous les secteurs</option>
+            <option>BTP et construction</option><option>Commerce et distribution</option>
+            <option>Import-Export</option><option>Agroalimentaire</option>
+            <option>Agriculture et élevage</option><option>Technologies et numérique</option>
+            <option>Transport et logistique</option><option>Santé et pharmacie</option>
+            <option>Éducation et formation</option><option>Hôtellerie et restauration</option>
+            <option>Services financiers</option><option>Énergie et mines</option>
+            <option>Industrie et manufacturing</option><option>Médias et communication</option>
+            <option>Conseil et services B2B</option><option>Autres</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Raison sociale</th><th>Sigle</th><th>NIU</th><th>Activité</th><th>Secteur</th><th>Région</th><th>Ville</th><th>Action</th></tr></thead>
+            <tbody id="co-body"></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="co-pagination"></div>
+      </div>
+    </div>
+
+    <!-- USERS -->
+    <div class="page" id="page-users">
+      <div class="page-title">Utilisateurs</div>
+      <div class="card">
+        <div class="card-title">Comptes <span class="card-sub" id="user-count"></span></div>
+        <div class="filter-bar">
+          <input type="text" id="user-search" placeholder="Rechercher par nom ou email..." oninput="filterUsers()">
+          <select id="plan-filter" onchange="filterUsers()">
+            <option value="">Tous les plans</option>
+            <option value="free">Gratuit</option><option value="starter">Starter</option>
+            <option value="pro">Pro</option><option value="enterprise">Entreprise</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Nom</th><th>Email</th><th>Plan</th><th>Usage/jour</th><th>Statut</th><th>Inscription</th><th>Actions</th></tr></thead>
+            <tbody id="users-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- LOGS -->
+    <div class="page" id="page-logs">
+      <div class="page-title">Journal d'activité</div>
+      <div class="card">
+        <div class="card-title">Recherches récentes <span class="card-sub">20 dernières</span></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Utilisateur</th><th>Requête</th><th>Résultats DB</th><th>Plan</th><th>Date</th></tr></thead>
+            <tbody id="logs-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONFIG -->
+    <div class="page" id="page-config">
+      <div class="page-title">Configuration</div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Clé API Groq</div>
+          <div class="cfg-grp">
+            <label>Clé API Groq (pour l'assistant chat)</label>
+            <input type="password" id="cfg-key" placeholder="gsk_...">
+            <small>Obtenez votre clé gratuite sur <strong>console.groq.com/keys</strong><br>Utilisée uniquement pour l'assistant chat — les recherches utilisent la base de données locale.</small>
+          </div>
+          <button class="btn btn-g" onclick="saveConfig()">Enregistrer la clé</button>
+          <div class="ok-msg" id="cfg-ok">✅ Clé API enregistrée</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Sécurité admin</div>
+          <div class="cfg-grp">
+            <label>Nouveau mot de passe</label>
+            <input type="password" id="new-pass" placeholder="Minimum 6 caractères">
+            <small>Changez le mot de passe par défaut (admin123) immédiatement.</small>
+          </div>
+          <button class="btn btn-g" onclick="changePass()">Changer le mot de passe</button>
+          <div class="ok-msg" id="pass-ok">✅ Mot de passe modifié</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Plans tarifaires</div>
+        <table>
+          <thead><tr><th>Plan</th><th>Recherches / jour</th><th>Prix mensuel recommandé</th><th>Cible</th></tr></thead>
+          <tbody>
+            <tr><td><span class="badge b-free">Gratuit</span></td><td>10</td><td>—</td><td>Essai / découverte</td></tr>
+            <tr><td><span class="badge b-starter">Starter</span></td><td>200</td><td>5 000 FCFA</td><td>Commerciaux indépendants</td></tr>
+            <tr><td><span class="badge b-pro">Pro</span></td><td>500</td><td>15 000 FCFA</td><td>Équipes commerciales, PME</td></tr>
+            <tr><td><span class="badge b-enterprise">Entreprise</span></td><td>Illimité</td><td>50 000 FCFA</td><td>Grandes entreprises, cabinets</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = (window.location.origin && window.location.origin !== 'null') ? window.location.origin : 'http://localhost:3311';
+console.log('[API] origin', API);
+
+// Auth Manager
+class AuthManager {
+  constructor() {
+    this.tokenKey = 'sc_admin_token';
+  }
+  getToken() {
+    const token = localStorage.getItem(this.tokenKey);
+    if (!token || token === 'null' || token === 'undefined') {
+      localStorage.removeItem(this.tokenKey);
+      return null;
+    }
+    return token;
+  }
+  setToken(token) { localStorage.setItem(this.tokenKey, token); }
+  clearToken() { localStorage.removeItem(this.tokenKey); }
+  isAuthenticated() { return !!this.getToken(); }
+}
+const authManager = new AuthManager();
+
+let adminToken = authManager.getToken();
+let allUsers=[],coPage=1,coSearchTimer=null;
+const PLAN_INFO={free:{label:'Gratuit',badge:'b-free',icon:'🆓'},starter:{label:'Starter',badge:'b-starter',icon:'🚀'},pro:{label:'Pro',badge:'b-pro',icon:'⭐'},enterprise:{label:'Entreprise',badge:'b-enterprise',icon:'🏢'}};
+
+// VÉRIFICATION SYNCHRONE AU CHARGEMENT - PAS DE FLASH
+if(authManager.isAuthenticated()) {
+  showApp();
+} else {
+  document.getElementById('auth-page').style.display='flex';
+  document.getElementById('app').style.display='none';
+}
+
+async function doLogin(){
+  const e = document.getElementById('login-user').value.trim();
+  const p = document.getElementById('login-pass').value;
+  const err = document.getElementById('login-err');
+  
+  err.style.display = 'none';
+  
+  if(!e || !p){
+    err.textContent = '❌ Saisissez identifiant et mot de passe';
+    err.style.display = 'block';
+    return;
+  }
+
+  const btn = document.getElementById('l-btn') || { disabled: false, textContent: 'Accéder au panel →' };
+  btn.disabled = true;
+  if(btn.textContent !== undefined) btn.textContent = 'Connexion...';
+  
+  try{
+    // Try Firebase first
+    if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0) {
+      console.log('[Auth] Attempting Firebase login (admin)...');
+      try {
+        const userCredential = await firebase.auth().signInWithEmailAndPassword(e, p);
+        adminToken = userCredential.user.uid;
+        authManager.setToken(adminToken);
+        console.log('[Auth] ✅ Firebase login successful');
+        showApp();
+        return;
+      } catch (firebaseError) {
+        console.log('[Auth] Firebase login failed, trying API fallback:', firebaseError.code);
+      }
+    }
+    
+    // Fallback to API authentication
+    console.log('[Auth] Using API authentication (admin)...');
+    const API = (window.location.origin && window.location.origin !== 'null') ? window.location.origin : 'http://localhost:3311';
+    const response = await fetch(`${API}/admin/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: e, password: p })
+    });
+    
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.error || `Erreur ${response.status}`);
+    }
+    
+    const data = await response.json();
+    adminToken = data.token;
+    authManager.setToken(adminToken);
+    
+    // Check if password change is forced
+    if (data.needs_password_change) {
+      console.log('[Auth] ⚠️ First login detected - forcing password change');
+      document.getElementById('auth-page').style.display = 'none';
+      document.getElementById('force-password-page').style.display = 'flex';
+      return;
+    }
+    
+    console.log('[Auth] ✅ API login successful');
+    showApp();
+  }catch(error){
+    let message = '❌ Erreur de connexion';
+    if (error.code) {
+      switch(error.code){
+        case 'auth/user-not-found':
+        case 'auth/wrong-password':
+          message = '❌ Identifiant ou mot de passe incorrect';
+          break;
+        case 'auth/too-many-requests':
+          message = '❌ Trop de tentatives. Réessayez plus tard';
+          break;
+        case 'auth/invalid-email':
+          message = '❌ Identifiant invalide';
+          break;
+      }
+    } else if (error.message) {
+      message = '❌ ' + error.message;
+    }
+    err.textContent = message;
+    err.style.display = 'block';
+    console.error('[Auth] Login error:', error);
+  }finally{
+    btn.disabled = false;
+    if(btn.textContent !== undefined) btn.textContent = 'Accéder au panel →';
+  }
+}
+
+async function doForceChangePassword(){
+  const pass1 = document.getElementById('new-pass-1').value;
+  const pass2 = document.getElementById('new-pass-2').value;
+  const err = document.getElementById('force-pass-err');
+  const btn = document.getElementById('fp-btn');
+  
+  err.style.display = 'none';
+  
+  // Validation
+  if (!pass1 || !pass2) {
+    err.textContent = '❌ Saisissez les deux mots de passe';
+    err.style.display = 'block';
+    return;
+  }
+  
+  if (pass1.length < 6) {
+    err.textContent = '❌ Le mot de passe doit contenir au moins 6 caractères';
+    err.style.display = 'block';
+    return;
+  }
+  
+  if (pass1 !== pass2) {
+    err.textContent = '❌ Les mots de passe ne correspondent pas';
+    err.style.display = 'block';
+    return;
+  }
+  
+  if (pass1 === 'admin123') {
+    err.textContent = '❌ Choisissez un mot de passe différent du mot de passe par défaut';
+    err.style.display = 'block';
+    return;
+  }
+  
+  btn.disabled = true;
+  btn.textContent = 'Mise à jour en cours...';
+  
+  try {
+    const API = (window.location.origin && window.location.origin !== 'null') ? window.location.origin : 'http://localhost:3311';
+    const response = await fetch(`${API}/admin/change-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${adminToken}`
+      },
+      body: JSON.stringify({ newPassword: pass1 })
+    });
+    
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.error || `Erreur ${response.status}`);
+    }
+    
+    const data = await response.json();
+    console.log('[Auth] ✅ Password changed successfully');
+    
+    // Clear inputs
+    document.getElementById('new-pass-1').value = '';
+    document.getElementById('new-pass-2').value = '';
+    
+    // Show success message
+    err.textContent = '✅ Mot de passe changé avec succès. Accès au panel...';
+    err.style.color = '#1B7A3E';
+    err.style.display = 'block';
+    
+    // Wait 1 second and show app
+    setTimeout(() => {
+      document.getElementById('force-password-page').style.display = 'none';
+      showApp();
+    }, 1000);
+  } catch (error) {
+    err.textContent = '❌ ' + (error.message || 'Erreur lors du changement de mot de passe');
+    err.style.display = 'block';
+    console.error('[Auth] Password change error:', error);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Mettre à jour le mot de passe';
+  }
+}
+
+function logout(){
+  console.log('[Auth] Logout initiated...');
+  // Clear admin token FIRST (before Firebase logout)
+  adminToken = null;
+  authManager.clearToken();
+  
+  // Clear all cached data
+  Object.keys(localStorage).forEach(key => {
+    if(key.startsWith('sc_cache_')) {
+      localStorage.removeItem(key);
+    }
+  });
+  
+  // Sign out from Firebase (if initialized)
+  if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0) {
+    firebase.auth().signOut().then(() => {
+      console.log('[Auth] ✅ Firebase logout complete');
+      // Show auth page
+      document.getElementById('app').style.display = 'none';
+      document.getElementById('auth-page').style.display = 'flex';
+      // Clear input fields
+      document.getElementById('login-user').value = 'admin';
+      document.getElementById('login-pass').value = '';
+      document.getElementById('login-err').style.display = 'none';
+      console.log('[Auth] ✅ UI reset complete - ready for new login');
+    }).catch((error) => {
+      console.error('[Auth] Firebase logout error:', error.message);
+      // Still show auth page even if Firebase logout fails
+      document.getElementById('app').style.display = 'none';
+      document.getElementById('auth-page').style.display = 'flex';
+      document.getElementById('login-user').value = 'admin';
+      document.getElementById('login-pass').value = '';
+      console.log('[Auth] ✅ UI reset complete (Firebase error ignored)');
+    });
+  } else {
+    // Firebase not available, just show auth page
+    console.log('[Auth] Firebase not initialized, showing auth page directly');
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('auth-page').style.display = 'flex';
+    document.getElementById('login-user').value = 'admin';
+    document.getElementById('login-pass').value = '';
+    document.getElementById('login-err').style.display = 'none';
+    console.log('[Auth] ✅ Logout complete');
+  }
+}
+
+function showApp(){
+  document.getElementById('auth-page').style.display='none';
+  document.getElementById('app').style.display='block';
+  const initialPage=window.location.hash.replace('#','')||'dashboard';
+  showPage(initialPage);
+}
+
+const H=()=>{
+  const headers = {'Content-Type':'application/json'};
+  if (adminToken) headers.Authorization = `Bearer ${adminToken}`;
+  return headers;
+};
+
+// Le reste de votre code continue ici...
+// (gardez tout le reste identique à partir de window.addEventListener('hashchange'...))
+
+window.addEventListener('hashchange',()=>{
+  const page = window.location.hash.replace('#','');
+  if(page) showPage(page);
+});
+
+function showPage(name,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const page = document.getElementById(`page-${name}`);
+  if(!page) return;
+  page.classList.add('active');
+  if(!el) el = document.querySelector(`.nav-item[data-page="${name}"]`);
+  if(el) el.classList.add('active');
+  window.location.hash = name;
+  if(name==='dashboard') loadDashboard();
+  if(name==='users') loadUsers();
+  if(name==='logs') loadLogs();
+  if(name==='config') loadConfig();
+  if(name==='companies') loadCompanies(1);
+  if(name==='import') loadImportLogs();
+}
+
+// ── CACHE MANAGEMENT ──────────────────────────────────────────
+const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes
+function getCachedData(key) {
+  try {
+    const cached = localStorage.getItem(`sc_cache_${key}`);
+    const timestamp = localStorage.getItem(`sc_cache_${key}_ts`);
+    if (cached && timestamp) {
+      const age = Date.now() - parseInt(timestamp);
+      if (age < CACHE_EXPIRY) return JSON.parse(cached);
+    }
+  } catch (e) { console.error('Cache read error:', e); }
+  return null;
+}
+function setCachedData(key, data) {
+  try {
+    localStorage.setItem(`sc_cache_${key}`, JSON.stringify(data));
+    localStorage.setItem(`sc_cache_${key}_ts`, Date.now().toString());
+  } catch (e) { console.error('Cache write error:', e); }
+}
+
+// ── DASHBOARD ──────────────────────────────────────────────────
+async function loadDashboard(){
+  try{
+    // Check cache first
+    const cached = getCachedData('dashboard');
+    if (cached) renderDashboard(cached);
+    
+    // Load fresh data in background
+    try {
+      const r=await fetch(`${API}/admin/stats`,{headers:H()});
+      if(r.status===401){logout();return;}
+      if(!r.ok){
+        console.error('Failed to load stats:', r.status, r.statusText);
+        if (!cached) toast('❌ Erreur chargement statistiques');
+        return;
+      }
+      const d=await r.json();
+      const cr=await fetch(`${API}/admin/config`,{headers:H()});
+      if(!cr.ok){
+        console.error('Failed to load config:', cr.status, cr.statusText);
+        if (!cached) {
+          document.getElementById('s-api').textContent='❌ Erreur';
+          document.getElementById('s-api-sub').textContent='Impossible de vérifier';
+        }
+      } else {
+        const cfg=await cr.json();
+        d.config = cfg;
+      }
+      setCachedData('dashboard', d);
+      renderDashboard(d);
+    } catch (e) {
+      console.error('Failed to load fresh data:', e);
+      if (!cached) toast('❌ Erreur chargement statistiques');
+    }
+  }catch(e){console.error(e);}
+}
+
+function renderDashboard(d) {
+  document.getElementById('s-users').textContent=d.totalUsers || 0;
+function renderDashboard(d) {
+  console.log('[Dashboard] Rendering with data:', d);
+  document.getElementById('s-cos').textContent=(d.totalCompanies || 0).toLocaleString();
+  document.getElementById('s-today').textContent=d.activeToday || 0;
+  document.getElementById('s-total').textContent=d.totalSearches || 0;
+  const cfg = d.config || {};
+  const ae=document.getElementById('s-api');
+  if(cfg.groq_api_key){ae.textContent='✅ OK';ae.style.color='var(--g)';document.getElementById('s-api-sub').textContent='Chat IA actif';}
+  else{ae.textContent='❌ Manquante';ae.style.color='var(--red)';document.getElementById('s-api-sub').textContent='Chat IA inactif';}
+  // Region bars
+  const maxR=(d.companiesByRegion||[])[0]?.c||1;
+  document.getElementById('region-bars').innerHTML=(d.companiesByRegion||[]).map(r=>`
+    <div class="bar-row"><div class="bar-label" title="${r.region||'—'}">${r.region||'—'}</div>
+    <div class="bar-track"><div class="bar-fill" style="width:${Math.round(r.c/maxR*100)}%"></div></div>
+    <div class="bar-count">${r.c.toLocaleString()}</div></div>`).join('')||'<p style="color:var(--tx3);font-size:13px">Aucune donnée — importez des entreprises</p>';
+  // Sector bars
+  const maxS=(d.companiesBySecteur||[])[0]?.c||1;
+  document.getElementById('sector-bars').innerHTML=(d.companiesBySecteur||[]).map(s=>`
+    <div class="bar-row"><div class="bar-label" title="${s.secteur}">${s.secteur}</div>
+    <div class="bar-track"><div class="bar-fill" style="width:${Math.round(s.c/maxS*100)}%"></div></div>
+    <div class="bar-count">${s.c.toLocaleString()}</div></div>`).join('')||'<p style="color:var(--tx3);font-size:13px">Aucune donnée</p>';
+  // Plan summary
+  const counts={free:0,starter:0,pro:0,enterprise:0};
+  (d.planCounts||[]).forEach(p=>{if(p.plan in counts)counts[p.plan]=p.c;});
+  document.getElementById('plan-summary').innerHTML=Object.entries(PLAN_INFO).map(([k,v])=>`
+    <div style="text-align:center;padding:12px;background:var(--bg3);border-radius:var(--r)">
+      <div style="font-size:20px;margin-bottom:4px">${v.icon}</div>
+      <div style="font-size:11px;color:var(--tx3);font-weight:600">${v.label}</div>
+      <div style="font-size:22px;font-weight:700;color:var(--g)">${counts[k]}</div>
+    </div>`).join('');
+  // Recent logs
+  document.getElementById('recent-logs').innerHTML=(d.recentLogs||[]).slice(0,8).map(l=>`
+    <tr><td class="td-bold" style="font-size:12.5px">${l.name}</td>
+    <td class="td-trunc td-sm">${l.query||'—'}</td>
+    <td style="font-size:12px;font-weight:600;color:var(--g)">${l.results_count||0}</td>
+    <td><span class="badge ${PLAN_INFO[l.plan]?.badge||'b-free'}">${l.plan}</span></td></tr>`).join('');
+  console.log('[Dashboard] ✅ Render complete');
+}
+
+// ── IMPORT ──────────────────────────────────────────────────────
+function dragOver(e){e.preventDefault();document.getElementById('import-zone').classList.add('drag-over');}
+function dragLeave(){document.getElementById('import-zone').classList.remove('drag-over');}
+function dropFile(e){e.preventDefault();dragLeave();const f=e.dataTransfer.files[0];if(f)processFile(f);}
+function handleFile(e){const f=e.target.files[0];if(f)processFile(f);}
+
+async function processFile(file){
+  const rb=document.getElementById('result-box');
+  rb.style.display='none';rb.className='result-box';
+  document.getElementById('progress-wrap').style.display='block';
+  document.getElementById('progress-fill').style.width='30%';
+  document.getElementById('progress-text').textContent='Traitement de "'+file.name+'"...';
+  const fd=new FormData();fd.append('file',file);
+  try{
+    document.getElementById('progress-fill').style.width='70%';
+    const r=await fetch(API+'/admin/import',{method:'POST',headers:{'Authorization':'Bearer '+adminToken},body:fd});
+    document.getElementById('progress-fill').style.width='100%';
+    setTimeout(()=>document.getElementById('progress-wrap').style.display='none',500);
+    const rawText=await r.text();
+    let d;
+    try{d=JSON.parse(rawText);}
+    catch{
+      rb.className='result-box err';
+      rb.innerHTML='<strong>❌ Erreur serveur (code '+r.status+')</strong><br><br>'
+        +'<strong>Détail :</strong> '+rawText.slice(0,300)+'<br><br>'
+        +'<span style="font-size:12px;color:#888">Si le serveur vient d\'être installé, exécutez <code>npm install</code> dans le dossier <code>server/</code> puis redémarrez.</span>';
+      rb.style.display='block';
+      document.getElementById('file-input').value='';
+      return;
+    }
+    if(!r.ok){
+      rb.className='result-box err';
+      rb.innerHTML='<strong>❌ '+( d.error||'Erreur import')+'</strong>';
+      rb.style.display='block';
+      document.getElementById('file-input').value='';return;
+    }
+    rb.className='result-box ok';
+    const cols=Object.entries(d.columns_detected||{}).map(function(e){return '<li><strong>'+e[0]+'</strong> → colonne "'+e[1]+'"</li>';}).join('');
+    rb.innerHTML='<strong>✅ Import réussi — '+file.name+'</strong>'
+      +'<div class="result-stats">'
+      +'<div class="rs-item"><div class="rs-val">'+d.total+'</div><div class="rs-lbl">Lignes lues</div></div>'
+      +'<div class="rs-item"><div class="rs-val">'+d.imported+'</div><div class="rs-lbl">Nouvelles</div></div>'
+      +'<div class="rs-item"><div class="rs-val" style="color:var(--blue)">'+(d.updated||0)+'</div><div class="rs-lbl">Mises à jour</div></div>'
+      +'<div class="rs-item"><div class="rs-val" style="color:var(--gold)">'+d.skipped+'</div><div class="rs-lbl">Doublons ignorés</div></div>'
+      +'<div class="rs-item"><div class="rs-val" style="color:var(--red)">'+d.errors+'</div><div class="rs-lbl">Erreurs</div></div>'
+      +'</div>'
+      +(cols?'<div style="margin-top:10px;font-size:12px"><strong>Colonnes mappées :</strong><ul style="padding-left:16px;margin-top:4px">'+cols+'</ul></div>':'');
+    rb.style.display='block';
+    toast('✅ '+d.imported+' entreprises importées');
+    loadImportLogs();loadDashboard();
+  }catch(e){
+    document.getElementById('progress-wrap').style.display='none';
+    rb.className='result-box err';
+    rb.innerHTML='<strong>❌ Impossible de joindre le serveur</strong><br>'+e.message+'<br><span style="font-size:12px">Vérifiez que le serveur est démarré.</span>';
+    rb.style.display='block';
+  }
+  document.getElementById('file-input').value='';
+}
+
+async function loadImportLogs(){
+  try{
+    const r=await fetch(`${API}/admin/import-logs`,{headers:H()});
+    if(!r.ok){
+      console.error('Failed to load import logs:', r.status, r.statusText);
+      return;
+    }
+    const logs=await r.json();
+    document.getElementById('import-count').textContent=`${logs.length} import${logs.length>1?'s':''}`;
+    document.getElementById('import-logs').innerHTML=logs.length?logs.map(l=>`
+      <div class="ilog-row">
+        <div class="ilog-filename" title="${l.filename}">📄 ${l.filename}</div>
+        <span class="ilog-stat ilog-ok">+${l.imported}</span>
+        ${l.skipped?`<span class="ilog-stat ilog-warn">${l.skipped} ign.</span>`:''}
+        <span class="td-sm">${(l.imported_at||'').replace('T',' ').slice(0,16)}</span>
+      </div>`).join(''):'<p style="color:var(--tx3);font-size:13px;padding:12px">Aucun import effectué</p>';
+  } catch(e){
+    console.error('Load import logs error:', e);
+  }
+}
+
+// ── COMPANIES ──────────────────────────────────────────────────
+let coSearchVal='';
+function debounceCoSearch(){clearTimeout(coSearchTimer);coSearchTimer=setTimeout(()=>{coSearchVal=document.getElementById('co-search').value;loadCompanies(1);},400);}
+
+async function loadCompanies(page){
+  coPage=page||1;
+  const q=coSearchVal,region=document.getElementById('co-region').value,secteur=document.getElementById('co-secteur').value;
+  const params=new URLSearchParams({page:coPage});
+  if(q)params.set('q',q);if(region)params.set('region',region);if(secteur)params.set('secteur',secteur);
+  try{
+    // Check cache only for first page without filters
+    const cacheKey = coPage === 1 && !q && !region && !secteur ? 'companies_page1' : null;
+    if (cacheKey) {
+      const cached = getCachedData(cacheKey);
+      if (cached) renderCompanies(cached);
+    }
+    
+    const r=await fetch(`${API}/admin/companies?${params}`,{headers:H()});
+    if(r.status===401){logout();return;}
+    if(!r.ok){
+      console.error('Failed to load companies:', r.status, r.statusText);
+      const cached = cacheKey ? getCachedData(cacheKey) : null;
+      if (!cached) toast('❌ Erreur chargement entreprises');
+      return;
+    }
+    const d=await r.json();
+    if (cacheKey) setCachedData(cacheKey, d);
+    renderCompanies(d);
+  }catch(e){
+    console.error('Load companies error:', e);
+    const cacheKey = coPage === 1 && !q && !region && !secteur ? 'companies_page1' : null;
+    const cached = cacheKey ? getCachedData(cacheKey) : null;
+    if (!cached) toast('❌ Erreur réseau entreprises');
+  }
+}
+
+function renderCompanies(d) {
+    document.getElementById('co-count').textContent=`${d.total.toLocaleString()} résultats`;
+    document.getElementById('co-total-badge').textContent=`Total DB : ${d.total.toLocaleString()} entreprises`;
+    const body=document.getElementById('co-body');
+    if(!d.companies.length){body.innerHTML=`<tr><td colspan="8" style="text-align:center;color:var(--tx3);padding:24px">Aucune entreprise trouvée</td></tr>`;
+    } else {
+      body.innerHTML=d.companies.map(c=>`<tr>
+        <td class="td-bold td-trunc" title="${c.raison_sociale}">${c.raison_sociale}</td>
+        <td class="td-sm">${c.sigle||'—'}</td>
+        <td class="td-sm" style="font-family:monospace">${c.niu||'—'}</td>
+        <td class="td-trunc td-sm" title="${c.activite_principale||''}">${c.activite_principale||'—'}</td>
+        <td><span style="font-size:11px;padding:2px 7px;background:var(--gl);color:var(--g);border-radius:10px;font-weight:600">${c.secteur||'—'}</span></td>
+        <td class="td-sm">${c.region||'—'}</td>
+        <td class="td-sm">${c.ville||'—'}</td>
+        <td><button class="btn btn-red btn-sm" onclick="delCompany(${c.id},'${c.raison_sociale.replace(/'/g,"\\'")}')">Retirer</button></td>
+      </tr>`).join('');
+    }
+    // Pagination
+    const pages=d.pages,current=d.page;
+    let pg='';
+    if(pages>1){
+      if(current>1)pg+=`<button class="page-btn" onclick="loadCompanies(${current-1})">←</button>`;
+      const start=Math.max(1,current-2),end=Math.min(pages,current+2);
+      for(let i=start;i<=end;i++)pg+=`<button class="page-btn ${i===current?'active':''}" onclick="loadCompanies(${i})">${i}</button>`;
+      if(current<pages)pg+=`<button class="page-btn" onclick="loadCompanies(${current+1})">→</button>`;
+      pg+=`<span class="page-info">Page ${current}/${pages}</span>`;
+    }
+    document.getElementById('co-pagination').innerHTML=pg;
+}
+
+async function delCompany(id,name){
+  if(!confirm(`Retirer "${name}" de la base ? (l'entreprise ne sera plus visible dans les recherches)`))return;
+  const r=await fetch(`${API}/admin/companies/${id}`,{method:'DELETE',headers:H()});
+  if(r.ok){toast('✅ Entreprise retirée');loadCompanies(coPage);}
+}
+
+async function exportCompanies(){
+  try{
+    const q=coSearchVal, region=document.getElementById('co-region').value, secteur=document.getElementById('co-secteur').value;
+    const params=new URLSearchParams();
+    if(q) params.set('q', q);
+    if(region) params.set('region', region);
+    if(secteur) params.set('secteur', secteur);
+    const r = await fetch(`${API}/admin/companies/export?${params}`, {headers:{'Authorization':'Bearer '+adminToken}});
+    if(!r.ok){
+      const d = await r.json();
+      return toast('❌ '+(d.error||'Impossible d\'exporter les données'));
+    }
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `salescompanion-companies-${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    toast('✅ Export lancé');
+  }catch(e){toast('Erreur export : '+e.message);} 
+}
+
+async function exportCompaniesToRailway(){
+  try{
+    const q=coSearchVal, region=document.getElementById('co-region').value, secteur=document.getElementById('co-secteur').value;
+    const params=new URLSearchParams();
+    if(q) params.set('q', q);
+    if(region) params.set('region', region);
+    if(secteur) params.set('secteur', secteur);
+    const r = await fetch(`${API}/admin/companies/export-railway?${params}`, {method:'POST',headers:H()});
+    const d = await r.json();
+    if(!r.ok) return toast('❌ '+(d.error||'Erreur export Railway'));
+    toast(`✅ Export vers Railway réussi (${d.imported||0} importées, ${d.updated||0} mises à jour)`);
+  }catch(e){toast('Erreur export Railway : '+e.message);} 
+}
+
+// ── USERS ──────────────────────────────────────────────────────
+async function loadUsers(){
+  try{
+    // Check cache first
+    const cached = getCachedData('users');
+    if (cached) renderUsers(cached);
+    
+    const r=await fetch(`${API}/admin/users`,{headers:H()});
+    if(r.status===401){logout();return;}
+    if(!r.ok){
+      console.error('Failed to load users:', r.status, r.statusText);
+      const cached = getCachedData('users');
+      if (!cached) toast('❌ Erreur chargement utilisateurs');
+      return;
+    }
+    allUsers=await r.json();
+    setCachedData('users', allUsers);
+    renderUsers(allUsers);
+  } catch(e){
+    console.error('Load users error:', e);
+    const cached = getCachedData('users');
+    if (!cached) toast('❌ Erreur réseau utilisateurs');
+  }
+}
+async function deleteAllCompanies(){
+  const conf=prompt('Tapez SUPPRIMER pour vider toute la base de données entreprises :');
+  if(conf!=='SUPPRIMER'){toast('Opération annulée');return;}
+  try{
+    console.log('[deleteAllCompanies] Starting deletion...');
+    console.log('[deleteAllCompanies] API:', API);
+    console.log('[deleteAllCompanies] Token exists:', !!adminToken);
+    const r=await fetch(API+'/admin/companies/all',{method:'DELETE',headers:H(),body:JSON.stringify({confirm:'SUPPRIMER'})});
+    console.log('[deleteAllCompanies] Response status:', r.status);
+    const d=await r.json();
+    console.log('[deleteAllCompanies] Response data:', d);
+    if(r.ok){toast('✅ Base vidée — '+d.deleted+' entreprises supprimées');loadCompanies(1);loadDashboard();}
+    else toast('❌ '+(d.error||'Opération échouée'));
+  }catch(e){
+    console.error('[deleteAllCompanies] Error:', e);
+    toast('Erreur: '+e.message);
+  }
+}
+
+function filterUsers(){
+  const q=document.getElementById('user-search').value.toLowerCase();
+  const plan=document.getElementById('plan-filter').value;
+  renderUsers(allUsers.filter(u=>(!q||u.name.toLowerCase().includes(q)||u.email.toLowerCase().includes(q))&&(!plan||u.plan===plan)));
+}
+function renderUsers(users){
+  document.getElementById('user-count').textContent=`${users.length} utilisateur${users.length>1?'s':''}`;
+  document.getElementById('users-body').innerHTML=users.length?users.map(u=>`<tr>
+    <td class="td-bold">${u.name}</td>
+    <td class="td-sm">${u.email}</td>
+    <td><select class="plan-sel" onchange="changePlan(${u.id},this.value)">${['free','starter','pro','enterprise'].map(p=>`<option value="${p}" ${u.plan===p?'selected':''}>${PLAN_INFO[p].label}</option>`).join('')}</select></td>
+    <td><span style="font-weight:600">${u.daily_used}</span><span class="td-sm"> / ${u.daily_limit}</span></td>
+    <td><span class="badge ${u.active?'b-active':'b-inactive'}">${u.active?'Actif':'Inactif'}</span></td>
+    <td class="td-sm">${(u.created_at||'').split('T')[0]}</td>
+    <td style="display:flex;gap:6px">
+      <button class="btn btn-sm ${u.active?'btn-red':'btn-g'}" onclick="toggleUser(${u.id})">${u.active?'Désactiver':'Activer'}</button>
+      <button class="btn btn-red btn-sm" onclick="deleteUser(${u.id},'${u.name.replace(/'/g,"\\'")}')">✕</button>
+    </td></tr>`).join(''):`<tr><td colspan="7" style="text-align:center;color:var(--tx3);padding:24px">Aucun utilisateur</td></tr>`;
+}
+async function changePlan(id,plan){
+  const r=await fetch(`${API}/admin/users/${id}/plan`,{method:'POST',headers:H(),body:JSON.stringify({plan})});
+  const d=await r.json();
+  if(r.ok){toast(`✅ Plan : ${PLAN_INFO[plan].label}`);loadUsers();}
+  else toast('❌ '+(d.error||'Impossible de changer le plan'));
+}
+async function toggleUser(id){
+  const r=await fetch(`${API}/admin/users/${id}/toggle`,{method:'POST',headers:H()});
+  const d=await r.json();
+  if(r.ok){toast(d.active?'✅ Compte activé':'⚠️ Compte désactivé');loadUsers();}
+  else toast('❌ '+(d.error||'Impossible de changer le statut'));
+}
+async function deleteUser(id,name){
+  if(!confirm(`Supprimer "${name}" ? Cette action est irréversible.`))return;
+  try{
+    console.log('[deleteUser] Starting deletion for user:', id, name);
+    console.log('[deleteUser] API:', API);
+    console.log('[deleteUser] Token exists:', !!adminToken);
+    const r=await fetch(`${API}/admin/users/${id}`,{method:'DELETE',headers:H()});
+    console.log('[deleteUser] Response status:', r.status);
+    const d=await r.json();
+    console.log('[deleteUser] Response data:', d);
+    if(r.ok){toast('🗑️ Utilisateur supprimé');loadUsers();}
+    else toast('❌ '+(d.error||'Impossible de supprimer l\'utilisateur'));
+  }catch(e){
+    console.error('[deleteUser] Error:', e);
+    toast('Erreur réseau: '+e.message);
+  }
+}
+
+// ── LOGS ──────────────────────────────────────────────────────
+async function loadLogs(){
+  try{
+    // Check cache first
+    const cached = getCachedData('logs');
+    if (cached) renderLogs(cached);
+    
+    const r=await fetch(`${API}/admin/stats`,{headers:H()});
+    if(r.status===401){logout();return;}
+    if(!r.ok){
+      console.error('Failed to load logs:', r.status, r.statusText);
+      const cached = getCachedData('logs');
+      if (!cached) toast('❌ Erreur chargement logs');
+      return;
+    }
+    const d=await r.json();
+    setCachedData('logs', d);
+    renderLogs(d);
+  } catch(e){
+    console.error('Load logs error:', e);
+    const cached = getCachedData('logs');
+    if (!cached) toast('❌ Erreur réseau logs');
+  }
+}
+
+function renderLogs(d) {
+  document.getElementById('logs-body').innerHTML=(d.recentLogs||[]).map(l=>`<tr>
+    <td class="td-bold">${l.name}</td>
+    <td class="td-trunc td-sm">${l.query||'—'}</td>
+    <td style="font-weight:600;color:var(--g)">${l.results_count||0}</td>
+    <td><span class="badge ${PLAN_INFO[l.plan]?.badge||'b-free'}">${l.plan}</span></td>
+    <td class="td-sm">${(l.created_at||'').replace('T',' ').slice(0,16)}</td></tr>`).join('');
+}
+
+// ── CONFIG ──────────────────────────────────────────────────────
+async function loadConfig(){
+  try{
+    const r=await fetch(`${API}/admin/config`,{headers:H()});
+    if(r.status===401){logout();return;}
+    if(!r.ok){
+      let errorText = r.statusText;
+      try {
+        const errJson = await r.json();
+        if (errJson?.error) errorText = errJson.error;
+      } catch(_){
+        const raw = await r.text();
+        if (raw) errorText = raw;
+      }
+      console.error('Failed to load config:', r.status, errorText);
+      toast('❌ Erreur chargement configuration: '+errorText);
+      return;
+    }
+    const d=await r.json();
+    const input = document.getElementById('cfg-key');
+    if(d.groq_api_key) {
+      input.placeholder = d.groq_api_key + ' (active)';
+      input.value = '';
+    } else {
+      input.placeholder = 'gsk_...';
+      input.value = '';
+    }
+  } catch(e){
+    console.error('Load config error:', e);
+    if (e.name === 'TypeError' && e.message.includes('Failed to fetch')) {
+      toast('❌ Erreur réseau configuration : serveur inaccessible');
+    } else {
+      toast('❌ Erreur réseau configuration');
+    }
+  }
+}
+async function saveConfig(){
+  const k=document.getElementById('cfg-key').value.trim();
+  if(!k){toast('Saisissez une clé');return;}
+  try{
+    console.log('[saveConfig] Sending API key to server...');
+    const response=await fetch(`${API}/admin/config`,{
+      method:'POST',
+      headers:H(),
+      body:JSON.stringify({groq_api_key:k})
+    });
+    
+    console.log('[saveConfig] Response status:', response.status);
+    console.log('[saveConfig] Response headers:', response.headers.get('content-type'));
+    
+    if(response.status===401){
+      console.warn('[saveConfig] Unauthorized - logging out');
+      logout();
+      return;
+    }
+    
+    const text = await response.text();
+    console.log('[saveConfig] Raw response text:', text.slice(0, 200));
+    
+    let d = {};
+    if(text && text.trim()) {
+      try {
+        d = JSON.parse(text);
+        console.log('[saveConfig] Parsed JSON:', d);
+      } catch(parseError) {
+        console.error('[saveConfig] JSON parse error:', parseError);
+        console.error('[saveConfig] Full response text:', text);
+        toast('❌ Réponse serveur invalide: '+text.slice(0, 50));
+        return;
+      }
+    } else {
+      console.warn('[saveConfig] Empty response');
+    }
+    
+    if(response.ok){
+      console.log('[saveConfig] Success - saving configuration');
+      document.getElementById('cfg-key').value='';
+      document.getElementById('cfg-key').placeholder = k.slice(0,10) + '... (actif)';
+      document.getElementById('cfg-ok').style.display='block';
+      toast('✅ Clé API enregistrée');
+      setTimeout(()=>document.getElementById('cfg-ok').style.display='none',4000);
+      if(window.location.hash === '#dashboard' || window.location.hash === '') loadDashboard();
+    } else {
+      const errMsg = d.error || `Erreur serveur (${response.status})`;
+      console.error('[saveConfig] Failed:', errMsg);
+      toast('❌ '+errMsg);
+    }
+  } catch(e){
+    console.error('[saveConfig] Network error:', e.message, e.stack);
+    toast('❌ Erreur réseau - '+e.message);
+  }
+}
+async function changePass(){
+  const p=document.getElementById('new-pass').value;
+  const r=await fetch(`${API}/admin/change-password`,{method:'POST',headers:H(),body:JSON.stringify({newPassword:p})});
+  const d=await r.json();
+  if(r.ok){
+    document.getElementById('pass-ok').style.display='block';
+    document.getElementById('new-pass').value='';
+    toast('✅ Mot de passe modifié');
+    setTimeout(()=>document.getElementById('pass-ok').style.display='none',4000);
+  } else toast('❌ '+(d.error||'Impossible de modifier le mot de passe'));
+}
+
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3200);}
+
+// ── FIREBASE INITIALIZATION ──────────────────────────────────────
+let firebaseInitAttempts = 0;
+const maxFirebaseInitAttempts = 10;
+
+function waitForFirebase() {
+  if (typeof firebase !== 'undefined' && firebase.apps) {
+    console.log('[Firebase] CDN loaded successfully');
+    initFirebase();
+  } else if (firebaseInitAttempts < maxFirebaseInitAttempts) {
+    firebaseInitAttempts++;
+    console.log(`[Firebase] Waiting... attempt ${firebaseInitAttempts}/${maxFirebaseInitAttempts}`);
+    setTimeout(waitForFirebase, 500);
+  } else {
+    console.error('[Firebase] Failed to load after', maxFirebaseInitAttempts, 'attempts');
+    useLocalAuth();
+  }
+}
+
+function initFirebase() {
+  const firebaseConfig = window.firebaseConfig;
+  if (!firebaseConfig || !firebaseConfig.apiKey) {
+    console.error('[Firebase] Config not available');
+    useLocalAuth();
+    return;
+  }
+
+  try {
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+      console.log('[Firebase] Initialized with projectId:', firebaseConfig.projectId);
+    }
+    
+    // Enable persistence
+    firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL).then(() => {
+      // Listen to auth state changes
+      firebase.auth().onAuthStateChanged((user) => {
+        if (user) {
+          adminToken = user.uid;
+          document.getElementById('admin-user').textContent = user.email || 'Admin';
+          showApp();
+        } else {
+          adminToken = null;
+          showAuthScreen();
+        }
+      });
+      console.log('[Firebase] ✅ Initialization complete');
+    }).catch((error) => {
+      console.error('[Firebase] Persistence error:', error);
+      useLocalAuth();
+    });
+  } catch (error) {
+    console.error('[Firebase] Init error:', error);
+    useLocalAuth();
+  }
+}
+
+// Fallback local authentication (without Firebase)
+function useLocalAuth() {
+  console.log('[Auth] Fallback to local authentication (bypass Firebase)');
+  // Admin is already authenticated via localStorage token
+  adminToken = authManager.getToken();
+  if (adminToken) {
+    showApp();
+  } else {
+    document.getElementById('auth-page').style.display = 'flex';
+    document.getElementById('app').style.display = 'none';
+  }
+}
+
+// Start initialization when ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', waitForFirebase);
+} else {
+  waitForFirebase();
+}
+</script>
+</body>
+</html>
