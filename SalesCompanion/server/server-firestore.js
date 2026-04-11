@@ -7,6 +7,8 @@ const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const path = require('path');
+const fs = require('fs');
 
 const app = express();
 
@@ -14,6 +16,7 @@ const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'sc-secret-2025';
 
 let db = null;
+let dbInitError = null;
 
 // ─────────────────────────────────────────────
 // MIDDLEWARE
@@ -22,18 +25,39 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// � SERVE STATIC FILES (Admin, Client, Mobile) - BEFORE DB GUARD
-const path = require('path');
-app.use('/admin', express.static(path.join(__dirname, '..', 'admin')));
-app.use('/client', express.static(path.join(__dirname, '..', 'client')));
-app.use('/mobile', express.static(path.join(__dirname, '..', 'mobile')));
+// Log all requests
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  next();
+});
+
+// 📁 SERVE STATIC FILES FIRST (Before DB guard)
+const adminPath = path.join(__dirname, '..', 'admin');
+const clientPath = path.join(__dirname, '..', 'client');
+const mobilePath = path.join(__dirname, '..', 'mobile');
+
+console.log(`📁 Checking static paths...`);
+console.log(`   Admin: ${fs.existsSync(adminPath) ? '✅' : '❌'} ${adminPath}`);
+console.log(`   Client: ${fs.existsSync(clientPath) ? '✅' : '❌'} ${clientPath}`);
+console.log(`   Mobile: ${fs.existsSync(mobilePath) ? '✅' : '❌'} ${mobilePath}`);
+
+app.use('/admin', express.static(adminPath));
+app.use('/client', express.static(clientPath));
+app.use('/mobile', express.static(mobilePath));
 app.use(express.static(path.join(__dirname, '..')));
 
-// 🔥 DB GUARD (IMPORTANT POUR RAILWAY) - AFTER STATIC FILES
+// 🔥 DB GUARD - ONLY FOR API ENDPOINTS (After static files)
 app.use((req, res, next) => {
-  if (!db && req.path !== '/health') {
+  // Allow health check and static file requests
+  if (req.path === '/health' || req.path.match(/\.(html|css|js|json|png|jpg|svg|ico|webp|woff2?)$/)) {
+    return next();
+  }
+  
+  // Block API requests if DB not ready
+  if (!db && (req.path.startsWith('/api') || req.path.startsWith('/admin/login') || req.path.startsWith('/admin/register'))) {
     return res.status(503).json({
-      error: 'Database not ready'
+      error: 'Database not ready',
+      status: 'initializing'
     });
   }
   next();
@@ -75,8 +99,6 @@ async function ensureAdminExists() {
 // ─────────────────────────────────────────────
 // FIRESTORE INIT (SAFE)
 // ─────────────────────────────────────────────
-// FIRESTORE INIT (SAFE)
-// ─────────────────────────────────────────────
 async function initializeFirestore() {
   const admin = require('firebase-admin');
 
@@ -96,7 +118,7 @@ async function initializeFirestore() {
       }
       
       credential = admin.credential.cert(serviceAccount);
-      console.log("✅ Firebase initialized");
+      console.log("✅ Firebase credentials loaded from env var");
     } catch (e) {
       console.error("❌ Failed to parse FIREBASE_SERVICE_ACCOUNT:", e.message);
       throw e;
@@ -113,13 +135,11 @@ async function initializeFirestore() {
   }
   // Priority 3: Local file fallback
   else {
-    console.log("📁 Using local serviceAccountKey.json file");
-    const path = require('path');
-    const fs = require('fs');
-
+    console.log("📁 Looking for local serviceAccountKey.json file...");
     const possiblePaths = [
-      path.join(__dirname, '../serviceAccountKey.json'),
-      path.join(process.cwd(), 'serviceAccountKey.json')
+      path.join(__dirname, 'salescompanion-firebase-adminsdk.json'),
+      path.join(__dirname, 'serviceAccountKey.json'),
+      path.join(process.cwd(), 'SalesCompanion/server/salescompanion-firebase-adminsdk.json')
     ];
 
     let filePath = null;
@@ -127,16 +147,20 @@ async function initializeFirestore() {
     for (const p of possiblePaths) {
       if (fs.existsSync(p)) {
         filePath = p;
-        console.log(`  Found: ${p}`);
+        console.log(`   ✅ Found: ${p}`);
         break;
       }
     }
 
     if (!filePath) {
-      throw new Error("❌ No Firebase credentials found. Set FIREBASE_SERVICE_ACCOUNT or individual FIREBASE_* env variables, or provide serviceAccountKey.json");
+      throw new Error("❌ No Firebase credentials found. Set FIREBASE_SERVICE_ACCOUNT env var or provide salescompanion-firebase-adminsdk.json");
     }
 
-    credential = admin.credential.cert(require(filePath));
+    try {
+      credential = admin.credential.cert(require(filePath));
+    } catch (err) {
+      throw new Error(`❌ Failed to load Firebase credentials from ${filePath}: ${err.message}`);
+    }
   }
 
   if (!admin.apps.length) {
@@ -145,7 +169,7 @@ async function initializeFirestore() {
 
   const firestore = admin.firestore();
 
-  console.log("✅ Firestore initialized");
+  console.log("✅ Firestore initialized successfully");
 
   return firestore;
 }
@@ -157,7 +181,8 @@ app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
     db: !!db,
-    time: new Date().toISOString()
+    dbError: dbInitError,
+    timestamp: new Date().toISOString()
   });
 });
 
@@ -170,16 +195,16 @@ app.post('/admin/login', async (req, res) => {
     const { email, username, password } = req.body;
     const loginId = email || username;
 
-    console.log('[POST /admin/login] Tentative de connexion pour:', loginId);
+    console.log('[POST /admin/login] Login attempt for:', loginId);
 
     if (!loginId || !password) {
-      console.log('[POST /admin/login] ❌ Champs manquants');
+      console.log('[POST /admin/login] Missing fields');
       return res.status(400).json({ error: 'Email and password required' });
     }
 
     if (!db) {
-      console.log('[POST /admin/login] ❌ Database not initialized');
-      return res.status(503).json({ error: 'Database not ready' });
+      console.log('[POST /admin/login] Database not initialized');
+      return res.status(503).json({ error: 'Database not ready', details: dbInitError });
     }
 
     const snap = await db.collection('admin_users')
@@ -187,34 +212,32 @@ app.post('/admin/login', async (req, res) => {
       .limit(1)
       .get();
 
-    console.log('[POST /admin/login] Recherche effectuée. Résultat:', snap.empty ? 'Vide' : 'Trouvé');
+    console.log('[POST /admin/login] Query result:', snap.empty ? 'Not found' : 'Found');
 
     if (snap.empty) {
-      console.log('[POST /admin/login] ❌ Admin non trouvé avec email:', loginId);
+      console.log('[POST /admin/login] Admin not found:', loginId);
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
     const admin = snap.docs[0].data();
     const id = snap.docs[0].id;
 
-    console.log('[POST /admin/login] Admin trouvé. Vérification du mot de passe...');
+    console.log('[POST /admin/login] Verifying password...');
 
     const ok = await bcrypt.compare(password, admin.password_hash);
 
     if (!ok) {
-      console.log('[POST /admin/login] ❌ Mot de passe incorrect');
+      console.log('[POST /admin/login] Invalid password');
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    console.log('[POST /admin/login] ✅ Mot de passe correct');
+    console.log('[POST /admin/login] Authentication successful');
 
     const token = jwt.sign(
       { id, email: admin.email, role: 'admin' },
       JWT_SECRET,
       { expiresIn: '8h' }
     );
-
-    console.log('[POST /admin/login] ✅ Token généré et connexion réussie');
 
     res.json({
       token,
@@ -223,7 +246,7 @@ app.post('/admin/login', async (req, res) => {
     });
 
   } catch (e) {
-    console.error('[POST /admin/login] ❌ Erreur serveur:', e.message);
+    console.error('[POST /admin/login] Error:', e.message);
     console.error(e.stack);
     res.status(500).json({ error: 'Server error: ' + e.message });
   }
@@ -306,6 +329,23 @@ app.post('/api/search', verifyToken, async (req, res) => {
 });
 
 // ─────────────────────────────────────────────
+// 404 HANDLER
+// ─────────────────────────────────────────────
+app.use((req, res) => {
+  console.log(`[404] ${req.method} ${req.path}`);
+  res.status(404).json({ error: 'Not found' });
+});
+
+// ─────────────────────────────────────────────
+// ERROR HANDLER
+// ─────────────────────────────────────────────
+app.use((err, req, res, next) => {
+  console.error(`[ERROR] ${err.message}`);
+  console.error(err.stack);
+  res.status(500).json({ error: 'Internal server error' });
+});
+
+// ─────────────────────────────────────────────
 // START SERVER (SAFE)
 // ─────────────────────────────────────────────
 async function start() {
@@ -319,28 +359,36 @@ async function start() {
     await ensureAdminExists();
     console.log('✅ Admin verification complete');
   } catch (e) {
-    console.error("❌ Initialization failed:", e.message);
-    console.error("   Server will start anyway but some features may not work");
+    dbInitError = e.message;
+    console.error("WARNING: Initialization failed:", e.message);
+    console.error("   Server will start anyway but API endpoints won't work until configured");
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    const adminStatus = db ? '✅ READY' : '⚠️ NOT INITIALIZED';
-    console.log(`
+  const server = app.listen(PORT, "0.0.0.0", () => {
+    const adminStatus = db ? 'READY' : 'NOT INITIALIZED';
+    const msg = `
 ╔════════════════════════════════════╗
 ║   SALES COMPANION v2.0 - SERVER    ║
 ╠════════════════════════════════════╣
-║ 🚀 Server running on 0.0.0.0       ║
-║ 📍 Port: ${PORT}${PORT === 3000 ? '                       ║' : '                      ║'}
-║ 🔥 Firestore: ${adminStatus}${adminStatus === '✅ READY' ? '         ║' : '       ║'}
-║ 📍 Panel Admin: http://localhost:${PORT}/admin          ║
-║ 📍 API: http://localhost:${PORT}              ║
-║ 📍 Health: http://localhost:${PORT}/health             ║
+║ Server running on 0.0.0.0          ║
+║ Port: ${PORT}                           ║
+║ Firestore: ${adminStatus}${' '.repeat(25 - adminStatus.length)}║
+║ Admin: http://localhost:${PORT}/admin${' '.repeat(22 - PORT.toString().length)}║
+║ Health: http://localhost:${PORT}/health${' '.repeat(20 - PORT.toString().length)}║
 ╠════════════════════════════════════╣
-║ 🔐 DEFAULT LOGIN (CHANGE AFTER!)    ║
-║ Username: admin                    ║
-║ Password: admin123                 ║
+║ DEFAULT LOGIN: admin / admin123    ║
 ╚════════════════════════════════════╝
-    `);
+    `;
+    console.log(msg);
+  });
+
+  // Graceful shutdown
+  process.on('SIGTERM', () => {
+    console.log('SIGTERM received, shutting down gracefully...');
+    server.close(() => {
+      console.log('Server closed');
+      process.exit(0);
+    });
   });
 }
 
