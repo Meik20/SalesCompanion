@@ -46,15 +46,6 @@ app.use('/client', express.static(clientPath));
 app.use('/mobile', express.static(mobilePath));
 app.use(express.static(path.join(__dirname, '..')));
 
-// 🏠 HOME HUB ROUTES
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'hub.html'));
-});
-
-app.get('/hub.html', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'hub.html'));
-});
-
 // 🔥 DB GUARD - ONLY FOR API ENDPOINTS (After static files)
 app.use((req, res, next) => {
   // Allow health check and static file requests
@@ -196,7 +187,7 @@ app.get('/health', (req, res) => {
 });
 
 // ─────────────────────────────────────────────
-// AUTH LOGIN
+// AUTH LOGIN (with auto-tracking)
 // ─────────────────────────────────────────────
 app.post('/admin/login', async (req, res) => {
   try {
@@ -225,6 +216,8 @@ app.post('/admin/login', async (req, res) => {
 
     if (snap.empty) {
       console.log('[POST /admin/login] Admin not found:', loginId);
+      // Log failed attempt
+      await logActivity('admin_login_failed', 'unknown', { email: loginId, reason: 'not_found' });
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
@@ -237,16 +230,26 @@ app.post('/admin/login', async (req, res) => {
 
     if (!ok) {
       console.log('[POST /admin/login] Invalid password');
+      // Log failed attempt
+      await logActivity('admin_login_failed', 'unknown', { email: loginId, reason: 'wrong_password' });
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
     console.log('[POST /admin/login] Authentication successful');
+
+    // Update last login
+    await db.collection('admin_users').doc(id).update({
+      last_login: new Date().toISOString()
+    });
 
     const token = jwt.sign(
       { id, email: admin.email, role: 'admin' },
       JWT_SECRET,
       { expiresIn: '8h' }
     );
+
+    // Log successful login
+    await logActivity('admin_login_success', id, { email: admin.email });
 
     res.json({
       token,
@@ -257,6 +260,7 @@ app.post('/admin/login', async (req, res) => {
   } catch (e) {
     console.error('[POST /admin/login] Error:', e.message);
     console.error(e.stack);
+    await logActivity('admin_login_error', 'unknown', { error: e.message });
     res.status(500).json({ error: 'Server error: ' + e.message });
   }
 });
@@ -317,23 +321,278 @@ function verifyToken(req, res, next) {
 }
 
 // ─────────────────────────────────────────────
-// SEARCH LOG
+// AUTO-LOG HELPER
+// ─────────────────────────────────────────────
+async function logActivity(type, userId, details = {}) {
+  if (!db) return;
+  try {
+    await db.collection('activity_logs').add({
+      type,
+      user_id: userId || 'anonymous',
+      details,
+      timestamp: new Date().toISOString(),
+      ip: details.ip || 'unknown'
+    });
+  } catch (err) {
+    console.error('❌ Failed to log activity:', err.message);
+  }
+}
+
+// ─────────────────────────────────────────────
+// CREATE USER (Auto-register)
+// ─────────────────────────────────────────────
+app.post('/api/users/create', async (req, res) => {
+  try {
+    const { email, name, password, company, plan = 'free' } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password required' });
+    }
+
+    if (!db) {
+      return res.status(503).json({ error: 'Database not ready' });
+    }
+
+    // Check if user exists
+    const existingSnap = await db.collection('users')
+      .where('email', '==', email)
+      .limit(1)
+      .get();
+
+    if (!existingSnap.empty) {
+      return res.status(409).json({ error: 'User already exists' });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create new user
+    const userRef = await db.collection('users').add({
+      email,
+      name: name || email.split('@')[0],
+      company: company || 'N/A',
+      password_hash: hashedPassword,
+      plan,
+      status: 'active',
+      created_at: new Date().toISOString(),
+      last_login: null,
+      search_count: 0
+    });
+
+    const userId = userRef.id;
+
+    console.log(`[POST /api/users/create] User created: ${email} (${userId})`);
+
+    // Auto-log activity
+    await logActivity('user_created', userId, { email, name, company, plan });
+
+    // Generate welcome token
+    const token = jwt.sign(
+      { id: userId, email, role: 'user' },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.json({
+      id: userId,
+      email,
+      name,
+      token,
+      message: 'User created successfully'
+    });
+
+  } catch (e) {
+    console.error('[POST /api/users/create] Error:', e.message);
+    await logActivity('user_create_error', 'unknown', { error: e.message });
+    res.status(500).json({ error: 'Server error: ' + e.message });
+  }
+});
+
+// ─────────────────────────────────────────────
+// CREATE COMPANY (Auto-register)
+// ─────────────────────────────────────────────
+app.post('/api/companies/create', verifyToken, async (req, res) => {
+  try {
+    const { name, industry, location, contact_name, contact_email, phone, website } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ error: 'Company name required' });
+    }
+
+    if (!db) {
+      return res.status(503).json({ error: 'Database not ready' });
+    }
+
+    // Create new company
+    const companyRef = await db.collection('companies').add({
+      name,
+      industry: industry || 'Unknown',
+      location: location || 'N/A',
+      contact_name: contact_name || 'N/A',
+      contact_email: contact_email || 'N/A',
+      phone: phone || 'N/A',
+      website: website || 'N/A',
+      created_by: req.user.id,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      status: 'active'
+    });
+
+    const companyId = companyRef.id;
+
+    console.log(`[POST /api/companies/create] Company created: ${name} (${companyId})`);
+
+    // Auto-log activity
+    await logActivity('company_created', req.user.id, { company_id: companyId, name, industry, location });
+
+    res.json({
+      id: companyId,
+      name,
+      industry,
+      location,
+      message: 'Company created successfully'
+    });
+
+  } catch (e) {
+    console.error('[POST /api/companies/create] Error:', e.message);
+    await logActivity('company_create_error', req.user.id, { error: e.message });
+    res.status(500).json({ error: 'Server error: ' + e.message });
+  }
+});
+
+// ─────────────────────────────────────────────
+// SEARCH + AUTO-LOG
 // ─────────────────────────────────────────────
 app.post('/api/search', verifyToken, async (req, res) => {
   try {
-    const { query } = req.body;
+    const { query, filters = {} } = req.body;
 
-    await db.collection('usage_logs').add({
+    if (!query) {
+      return res.status(400).json({ error: 'Query required' });
+    }
+
+    if (!db) {
+      return res.status(503).json({ error: 'Database not ready' });
+    }
+
+    // Log the search
+    const logRef = await db.collection('search_logs').add({
       user_id: req.user.id,
       query,
-      created_at: new Date()
+      filters,
+      timestamp: new Date().toISOString(),
+      results_count: 0
     });
 
-    res.json({ results: [], query });
+    console.log(`[POST /api/search] Search logged: "${query}" by ${req.user.email}`);
+
+    // Auto-log activity
+    await logActivity('search_performed', req.user.id, { query, filters });
+
+    // Return mock results for now
+    res.json({
+      log_id: logRef.id,
+      query,
+      results: [],
+      message: 'Search logged successfully'
+    });
 
   } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: 'Server error' });
+    console.error('[POST /api/search] Error:', e.message);
+    await logActivity('search_error', req.user.id, { error: e.message });
+    res.status(500).json({ error: 'Server error: ' + e.message });
+  }
+});
+
+// ─────────────────────────────────────────────
+// GET ACTIVITY LOGS (Admin only)
+// ─────────────────────────────────────────────
+app.get('/api/activity-logs', verifyToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const logsSnap = await db.collection('activity_logs')
+      .orderBy('timestamp', 'desc')
+      .limit(100)
+      .get();
+
+    const logs = logsSnap.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+
+    res.json({ count: logs.length, logs });
+
+  } catch (e) {
+    console.error('[GET /api/activity-logs] Error:', e.message);
+    res.status(500).json({ error: 'Server error: ' + e.message });
+  }
+});
+
+// ─────────────────────────────────────────────
+// GET USER PROFILE
+// ─────────────────────────────────────────────
+app.get('/api/users/:userId', verifyToken, async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Users can only view their own profile, admins can view any
+    if (req.user.id !== userId && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const userDoc = await db.collection('users').doc(userId).get();
+
+    if (!userDoc.exists) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const userData = userDoc.data();
+    delete userData.password_hash; // Never send password
+
+    res.json({ id: userId, ...userData });
+
+  } catch (e) {
+    console.error('[GET /api/users/:userId] Error:', e.message);
+    res.status(500).json({ error: 'Server error: ' + e.message });
+  }
+});
+
+// ─────────────────────────────────────────────
+// UPDATE USER PROFILE
+// ─────────────────────────────────────────────
+app.put('/api/users/:userId', verifyToken, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { name, company, phone, website } = req.body;
+
+    // Users can only update their own profile, admins can update any
+    if (req.user.id !== userId && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (company) updateData.company = company;
+    if (phone) updateData.phone = phone;
+    if (website) updateData.website = website;
+    updateData.updated_at = new Date().toISOString();
+
+    await db.collection('users').doc(userId).update(updateData);
+
+    console.log(`[PUT /api/users/:userId] User updated: ${userId}`);
+
+    // Auto-log activity
+    await logActivity('user_updated', req.user.id, { updated_user: userId, fields: Object.keys(updateData) });
+
+    res.json({ id: userId, ...updateData, message: 'Profile updated' });
+
+  } catch (e) {
+    console.error('[PUT /api/users/:userId] Error:', e.message);
+    await logActivity('user_update_error', req.user.id, { error: e.message });
+    res.status(500).json({ error: 'Server error: ' + e.message });
   }
 });
 
