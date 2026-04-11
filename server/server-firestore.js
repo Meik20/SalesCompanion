@@ -73,6 +73,8 @@ async function ensureAdminExists() {
 // ─────────────────────────────────────────────
 // FIRESTORE INIT (SAFE)
 // ─────────────────────────────────────────────
+// FIRESTORE INIT (SAFE)
+// ─────────────────────────────────────────────
 async function initializeFirestore() {
   const admin = require('firebase-admin');
 
@@ -80,23 +82,29 @@ async function initializeFirestore() {
 
   let credential;
 
-  const projectId = process.env.FIREBASE_PROJECT_ID;
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY;
-
-  // 🔥 ENV MODE (Railway)
-  if (projectId && clientEmail && privateKey) {
-    console.log("📦 Using Railway env credentials");
-
+  // Priority 1: FIREBASE_SERVICE_ACCOUNT environment variable (full JSON object)
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    console.log("📦 Using FIREBASE_SERVICE_ACCOUNT env variable (Railway)");
+    try {
+      const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+      credential = admin.credential.cert(serviceAccount);
+    } catch (e) {
+      console.error("❌ Failed to parse FIREBASE_SERVICE_ACCOUNT:", e.message);
+      throw e;
+    }
+  }
+  // Priority 2: Individual environment variables
+  else if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
+    console.log("📦 Using individual Firebase env credentials");
     credential = admin.credential.cert({
-      projectId,
-      clientEmail,
-      privateKey: privateKey.replace(/\\n/g, '\n'),
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
     });
-  } else {
-    // 🔥 LOCAL MODE fallback
-    console.log("📁 Using local serviceAccount file");
-
+  }
+  // Priority 3: Local file fallback
+  else {
+    console.log("📁 Using local serviceAccountKey.json file");
     const path = require('path');
     const fs = require('fs');
 
@@ -110,12 +118,13 @@ async function initializeFirestore() {
     for (const p of possiblePaths) {
       if (fs.existsSync(p)) {
         filePath = p;
+        console.log(`  Found: ${p}`);
         break;
       }
     }
 
     if (!filePath) {
-      throw new Error("No Firebase credentials found");
+      throw new Error("❌ No Firebase credentials found. Set FIREBASE_SERVICE_ACCOUNT or individual FIREBASE_* env variables, or provide serviceAccountKey.json");
     }
 
     credential = admin.credential.cert(require(filePath));

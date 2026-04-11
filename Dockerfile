@@ -12,9 +12,9 @@ RUN npm ci --omit=dev --no-audit --no-fund
 # Copy the rest of the code
 COPY server/ .
 
-# Copy Firebase service account key to parent directory
-# (server code looks for ../serviceAccountKey.json)
-COPY serviceAccountKey.json ../ 
+# Firebase credentials are loaded from FIREBASE_SERVICE_ACCOUNT env variable (Production)
+# Set in Railway: Environment Variables → FIREBASE_SERVICE_ACCOUNT
+# For local development: set FIREBASE_SERVICE_ACCOUNT or provide serviceAccountKey.json
 
 # Expose port (Railway utilise process.env.PORT)
 EXPOSE 3311
