@@ -30,6 +30,46 @@ app.use((req, res, next) => {
   next();
 });
 
+// 📁 SERVE STATIC FILES (Admin, Client, Mobile)
+const path = require('path');
+app.use('/admin', express.static(path.join(__dirname, '..', 'admin')));
+app.use('/client', express.static(path.join(__dirname, '..', 'client')));
+app.use('/mobile', express.static(path.join(__dirname, '..', 'mobile')));
+app.use(express.static(path.join(__dirname, '..')));
+
+// ─────────────────────────────────────────────
+// ENSURE DEFAULT ADMIN EXISTS
+// ─────────────────────────────────────────────
+async function ensureAdminExists() {
+  if (!db) return;
+  
+  try {
+    const adminSnap = await db.collection('admin_users')
+      .where('email', '==', 'admin')
+      .limit(1)
+      .get();
+    
+    if (!adminSnap.empty) {
+      console.log('✅ Default admin already exists');
+      return;
+    }
+    
+    // Create default admin
+    const hashedPassword = await bcrypt.hash('admin123', 10);
+    await db.collection('admin_users').add({
+      email: 'admin',
+      password_hash: hashedPassword,
+      role: 'admin',
+      first_login: false,
+      created_at: new Date().toISOString()
+    });
+    
+    console.log('✅ Default admin created (admin/admin123)');
+  } catch (error) {
+    console.error('❌ Error ensuring admin exists:', error.message);
+  }
+}
+
 // ─────────────────────────────────────────────
 // FIRESTORE INIT (SAFE)
 // ─────────────────────────────────────────────
@@ -108,10 +148,16 @@ app.get('/health', (req, res) => {
 // ─────────────────────────────────────────────
 app.post('/admin/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    // Support both 'email' and 'username' fields from frontend
+    const { email, username, password } = req.body;
+    const loginId = email || username;
+
+    if (!loginId || !password) {
+      return res.status(400).json({ error: 'Email and password required' });
+    }
 
     const snap = await db.collection('admin_users')
-      .where('email', '==', email)
+      .where('email', '==', loginId)
       .limit(1)
       .get();
 
@@ -129,19 +175,19 @@ app.post('/admin/login', async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id, email, role: 'admin' },
+      { id, email: admin.email, role: 'admin' },
       JWT_SECRET,
       { expiresIn: '8h' }
     );
 
     res.json({
       token,
-      admin: { id, email },
+      admin: { id, email: admin.email },
       needs_password_change: admin.first_login || false
     });
 
   } catch (e) {
-    console.error(e);
+    console.error('[POST /admin/login] Error:', e);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -230,6 +276,9 @@ async function start() {
 
   try {
     db = await initializeFirestore();
+    
+    // Ensure default admin exists
+    await ensureAdminExists();
   } catch (e) {
     console.error("❌ Firestore init failed:", e.message);
   }
