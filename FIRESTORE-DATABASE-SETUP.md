@@ -30,7 +30,7 @@ Create or update `.env`:
 ```bash
 GOOGLE_APPLICATION_CREDENTIALS=/path/to/serviceAccountKey.json
 FIRESTORE_SYNC_ENABLED=true
-PORT=3311
+PORT=3000
 JWT_SECRET=your-secret-key
 ```
 

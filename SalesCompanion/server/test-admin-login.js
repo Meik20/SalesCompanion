@@ -5,7 +5,7 @@
 
 const http = require('http');
 
-const API_URL = 'http://localhost:3311';
+const API_URL = 'http://localhost:3000';
 const LOGIN_ENDPOINT = '/admin/login';
 
 async function testAdminLogin() {
@@ -17,7 +17,7 @@ async function testAdminLogin() {
 
     const options = {
       hostname: 'localhost',
-      port: 3311,
+      port: 3000,
       path: LOGIN_ENDPOINT,
       method: 'POST',
       headers: {

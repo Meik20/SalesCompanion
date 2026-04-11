@@ -44,12 +44,12 @@ cd SalesCompanion\SalesCompanion\server
 npm install
 npm start
 ```
-✅ **Résultat**: Voir "✅ Firestore initialized"
+✅ **Résultat**: Voir ✅ Firestore initialized"
 
 ---
 
-## 🧪 Tester (30 sec)
-1. Ouvrir: http://localhost:3311/admin
+## 🔬 Tester (30 sec)
+1. Ouvrir: http://localhost:3000/admin
 2. Login: admin / admin123
 3. Créer utilisateur de test
 4. Ouvrir Firebase Console → Firestore

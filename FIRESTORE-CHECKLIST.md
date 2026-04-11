@@ -126,7 +126,7 @@ Créer un fichier `SalesCompanion\SalesCompanion\.env`:
 ```env
 GOOGLE_APPLICATION_CREDENTIALS=./serviceAccountKey.json
 FIRESTORE_SYNC_ENABLED=true
-PORT=3311
+PORT=3000
 NODE_ENV=development
 ```
 
@@ -155,14 +155,14 @@ Vous devriez voir:
 ```
 ✅ Firestore initialized with GOOGLE_APPLICATION_CREDENTIALS
 🚀 Sales Companion Server v2.0 (Firestore)
-   Panel Admin  : http://localhost:3311/admin
-   API          : http://localhost:3311
+   Panel Admin  : http://localhost:3000/admin
+   API          : http://localhost:3000
    Login        : admin / admin123
 ```
 
 ### 🎯 Tester la création d'utilisateur:
 
-1. Ouvrir http://localhost:3311/admin
+1. Ouvrir http://localhost:3000/admin
 2. Identifiants: `admin` / `admin123`
 3. Créer un nouvel utilisateur (Registration)
 4. Ouvrir Firebase Console → Firestore

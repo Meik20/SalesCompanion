@@ -120,7 +120,7 @@ Expected: 200 OK with JWT token
 1. **Verify with Server Running:**
    ```bash
    cd server && npm start
-   # Navigate to http://localhost:3311
+   # Navigate to http://localhost:3000
    # Try login with: admin / admin123
    ```
 

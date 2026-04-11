@@ -213,7 +213,7 @@ GOOGLE_APPLICATION_CREDENTIALS=$keyPath
 FIRESTORE_SYNC_ENABLED=true
 
 # Application Settings
-PORT=3311
+PORT=3000
 JWT_SECRET=sc-secret-2025-change-me-in-production
 NODE_ENV=development
 "@
@@ -275,7 +275,7 @@ $nextSteps = @(
     "   Sales Companion Server v2.0 (Firestore)",
     "",
     "4. Test synchronization:",
-    "   - Open: http://localhost:3311/admin",
+    "   - Open: http://localhost:3000/admin",
     "   - Login: admin / admin123",
     "   - Create a test user",
     "   - Check Firebase Console > Firestore > admin_users",

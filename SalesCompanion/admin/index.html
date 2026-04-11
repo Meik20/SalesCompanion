@@ -485,7 +485,7 @@ window.initFirebaseWhenReady();
 <div class="toast" id="toast"></div>
 
 <script>
-const API = (window.location.origin && window.location.origin !== 'null') ? window.location.origin : 'http://localhost:3311';
+const API = (window.location.origin && window.location.origin !== 'null') ? window.location.origin : 'http://localhost:3000';
 console.log('[API] origin', API);
 
 // Auth Manager
@@ -558,7 +558,7 @@ async function doLogin(){
     
     // Fallback to API authentication
     console.log('[Auth] Using API authentication (admin)...');
-    const API = (window.location.origin && window.location.origin !== 'null') ? window.location.origin : 'http://localhost:3311';
+    const API = (window.location.origin && window.location.origin !== 'null') ? window.location.origin : 'http://localhost:3000';
     console.log('[Auth] API endpoint:', API);
     const response = await fetch(`${API}/admin/login`, {
       method: 'POST',
@@ -652,7 +652,7 @@ async function doForceChangePassword(){
   btn.textContent = 'Mise à jour en cours...';
   
   try {
-    const API = (window.location.origin && window.location.origin !== 'null') ? window.location.origin : 'http://localhost:3311';
+    const API = (window.location.origin && window.location.origin !== 'null') ? window.location.origin : 'http://localhost:3000';
     const response = await fetch(`${API}/admin/change-password`, {
       method: 'POST',
       headers: {

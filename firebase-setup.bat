@@ -183,7 +183,7 @@ echo    ✅ Firestore initialized with GOOGLE_APPLICATION_CREDENTIALS
 echo    🚀 Sales Companion Server v2.0 (Firestore)
 echo.
 echo 4. Test by creating an admin user at:
-echo    http://localhost:3311/admin
+echo    http://localhost:3000/admin
 echo.
 echo ==================================
 echo ✨ Setup complete! Press any key...

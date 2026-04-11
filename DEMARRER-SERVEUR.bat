@@ -45,16 +45,16 @@ echo  ==========================================
 echo   Serveur demarre avec succes !
 echo  ==========================================
 echo.
-echo   Panel Admin    : http://localhost:3311/admin
-echo   App Mobile     : http://%IP%:3311/mobile
-echo   Landing Page   : http://%IP%:3311/
-echo   API            : http://localhost:3311
+echo   Panel Admin    : http://localhost:3000/admin
+echo   App Mobile     : http://%IP%:3000/mobile
+echo   Landing Page   : http://%IP%:3000/
+echo   API            : http://localhost:3000
 echo.
 echo   Login admin    : admin / [changez-moi au premier demarrage]
 echo.
 echo   Partagez ces liens avec vos utilisateurs :
-echo   Mobile  ^> http://%IP%:3311/mobile
-echo   Web     ^> http://%IP%:3311/
+echo   Mobile  ^> http://%IP%:3000/mobile
+echo   Web     ^> http://%IP%:3000/
 echo.
 echo  ==========================================
 echo   Appuyez sur Ctrl+C pour arreter

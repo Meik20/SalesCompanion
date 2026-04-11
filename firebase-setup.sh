@@ -159,7 +159,7 @@ GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/serviceAccountKey.json
 FIRESTORE_SYNC_ENABLED=true
 
 # Application
-PORT=3311
+PORT=3000
 JWT_SECRET=sc-secret-2025-change-me
 NODE_ENV=development
 ENVFILE

@@ -50,7 +50,7 @@ npm list pg
 ```env
 DATABASE_URL=postgresql://postgres:HSMfPEnUeQPItxoILxysomZIuzHavZIw@maglev.proxy.rlwy.net:30184/railway
 DATABASE_PUBLIC_URL=postgresql://postgres:HSMfPEnUeQPItxoILxysomZIuzHavZIw@maglev.proxy.rlwy.net:30184/railway
-PORT=3311
+PORT=3000
 NODE_ENV=development
 ```
 
@@ -68,7 +68,7 @@ Tu devrais voir :
 ✅ Admin créé : admin / admin123
 
 🚀 Sales Companion Server v2.0 (PostgreSQL)
-   Panel Admin  : http://localhost:3311/admin
+   Panel Admin  : http://localhost:3000/admin
 ```
 
 ## 🔧 Principales modifications
@@ -137,12 +137,12 @@ Ou plus simplement : **réimporter tes fichiers Excel** via l'admin panel.
 - [ ] `npm install` terminé sans erreur
 - [ ] Fichier `.env` avec `DATABASE_URL` correct
 - [ ] Serveur démarre avec `✅ Database connected successfully`
-- [ ] Panel admin accessible : http://localhost:3311/admin
+- [ ] Panel admin accessible : http://localhost:3000/admin
 - [ ] Login admin fonctionne (admin / admin123)
 
 ## 🎯 Prochaines étapes
 
-1. **Tester l'admin** : http://localhost:3311/admin
+1. **Tester l'admin** : http://localhost:3000/admin
 2. **Importer tes données** : Excel via "Importer fichier"
 3. **Déployer sur Railway** : Ce même code fonctionnera tel quel !
 

@@ -7,7 +7,7 @@ const fs = require('fs');
 let mainWindow;
 const TOKEN_FILE = path.join(app.getPath('userData'), 'auth_token.txt');
 const SERVER_FILE = path.join(app.getPath('userData'), 'server_url.txt');
-const DEFAULT_SERVER = 'http://localhost:3311';
+const DEFAULT_SERVER = 'http://localhost:3000';
 
 function createWindow() {
   mainWindow = new BrowserWindow({

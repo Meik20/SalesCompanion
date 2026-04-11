@@ -143,7 +143,7 @@ FIREBASE_CLIENT_EMAIL=firebase-adminsdk@project.iam.gserviceaccount.com
 FIREBASE_CLIENT_ID=123456789
 
 # Configuration générale
-PORT=3311
+PORT=3000
 JWT_SECRET=sc-secret-2025
 NODE_ENV=production
 ```
@@ -175,15 +175,15 @@ npm install
 npm start
 
 # 3. Vérifier la santé
-curl http://localhost:3311/health
+curl http://localhost:3000/health
 
 # 4. Test Admin
-curl -X POST http://localhost:3311/admin/login \
+curl -X POST http://localhost:3000/admin/login \
   -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"admin123"}'
 
 # 5. Test User
-curl -X POST http://localhost:3311/auth/register \
+curl -X POST http://localhost:3000/auth/register \
   -H "Content-Type: application/json" \
   -d '{"name":"Test","email":"test@example.com","password":"password123"}'
 ```

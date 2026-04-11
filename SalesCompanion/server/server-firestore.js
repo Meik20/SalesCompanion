@@ -10,7 +10,7 @@ const jwt = require('jsonwebtoken');
 
 const app = express();
 
-const PORT = process.env.PORT || 3311;
+const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'sc-secret-2025';
 
 let db = null;

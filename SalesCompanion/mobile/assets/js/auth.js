@@ -93,9 +93,9 @@ class AuthManager {
    */
   getServerUrl() {
     try {
-      return localStorage.getItem(this.serverUrlKey) || 'http://localhost:3311';
+      return localStorage.getItem(this.serverUrlKey) || 'http://localhost:3000';
     } catch (e) {
-      return 'http://localhost:3311';
+      return 'http://localhost:3000';
     }
   }
 

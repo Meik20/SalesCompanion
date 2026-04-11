@@ -87,7 +87,7 @@ GOOGLE_APPLICATION_CREDENTIALS=/path/to/serviceAccountKey.json
 
 **App Secrets**:
 ```env
-PORT=3311
+PORT=3000
 JWT_SECRET=sc-secret-2025
 NODE_ENV=production
 ```
@@ -138,12 +138,12 @@ NODE_ENV=production
 cd server && npm install && npm start
 
 # 2. Vérifier santé
-curl http://localhost:3311/health
+curl http://localhost:3000/health
 # Réponse attendue:
 # { "status": "ok", "database": "Firestore", ... }
 
 # 3. Test admin
-curl -X POST http://localhost:3311/admin/login \
+curl -X POST http://localhost:3000/admin/login \
   -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"admin123"}'
 

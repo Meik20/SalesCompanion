@@ -40,7 +40,7 @@ Le serveur créera automatiquement toutes les tables PostgreSQL lors du premier 
 **Admin par défaut** (à changer obligatoirement):
 - Identifiant: `admin`
 - Mot de passe: `admin123`
-- Port: `3311`
+- Port: `3000`
 
 ---
 

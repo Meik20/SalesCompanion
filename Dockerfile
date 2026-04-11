@@ -17,7 +17,7 @@ COPY server/ .
 # For local development: set FIREBASE_SERVICE_ACCOUNT or provide serviceAccountKey.json
 
 # Expose port (Railway utilise process.env.PORT)
-EXPOSE 3311
+EXPOSE 3000
 
 # Start server
 CMD ["node", "server-firestore.js"]

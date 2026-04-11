@@ -26,7 +26,7 @@ FIREBASE_CLIENT_ID=123456789
 
 ### Application Secrets
 ```env
-PORT=3311
+PORT=3000
 JWT_SECRET=your-secure-random-secret-here
 NODE_ENV=production
 ```
@@ -46,7 +46,7 @@ NODE_ENV=production
 
 2. **Set app secrets**:
    ```bash
-   heroku config:set PORT=3311 JWT_SECRET=xxxxx NODE_ENV=production
+   heroku config:set PORT=3000 JWT_SECRET=xxxxx NODE_ENV=production
    # or via Railway CLI / UI
    ```
 

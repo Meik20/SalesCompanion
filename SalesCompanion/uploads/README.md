@@ -31,9 +31,9 @@ npm install
 node server.js
 ```
 
-✅ Le serveur démarre sur **http://localhost:3311**
+✅ Le serveur démarre sur **http://localhost:3000**
 
-**Panel Admin :** http://localhost:3311/admin
+**Panel Admin :** http://localhost:3000/admin
 - Login : `admin`
 - Mot de passe : **CHANGEZ-LE AU PREMIER DÉMARRAGE** (voir DEMARRER-SERVEUR.bat)
 
@@ -41,7 +41,7 @@ node server.js
 
 ## ÉTAPE 2 — Configuration initiale (Panel Admin)
 
-1. Ouvrez http://localhost:3311/admin
+1. Ouvrez http://localhost:3000/admin
 2. Allez dans **Configuration** → saisissez votre clé API Groq (`gsk_...`)
 3. Allez dans **Import données** → importez votre fichier Excel d'entreprises
 
@@ -63,9 +63,9 @@ node server.js
 1. Trouvez l'IP de votre PC : tapez `ipconfig` (Windows) ou `ifconfig` (Mac/Linux)
 2. Sur votre téléphone, ouvrez le navigateur et allez sur :
    ```
-   http://[votre-IP]:3311/mobile
+   http://[votre-IP]:3000/mobile
    ```
-   Exemple : `http://192.168.1.10:3311/mobile`
+   Exemple : `http://192.168.1.10:3000/mobile`
 
 ### Installer comme application native
 - **Android (Chrome)** → Menu ⋮ → "Ajouter à l'écran d'accueil"
@@ -115,7 +115,7 @@ Pour que vos utilisateurs se connectent depuis partout (pas seulement en réseau
    pm2 start server.js --name "sales-companion"
    pm2 startup && pm2 save
    ```
-5. L'URL devient : `http://votre-domaine.com:3311`
+5. L'URL devient : `http://votre-domaine.com:3000`
 
 ---
 

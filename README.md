@@ -19,14 +19,14 @@ npm start
 ```
 
 **Accès**:
-- Panel Admin: http://localhost:3311/admin
-- API: http://localhost:3311
-- Mobile: http://localhost:3311/mobile
+- Panel Admin: http://localhost:3000/admin
+- API: http://localhost:3000
+- Mobile: http://localhost:3000/mobile
 
 ### Admin par défaut
 - **Utilisateur**: `admin`
 - **Mot de passe**: `admin123` (changez-le obligatoirement)
-- **Port**: 3311
+- **Port**: 3000
 
 ### Prerequisites
 - Node.js 14+

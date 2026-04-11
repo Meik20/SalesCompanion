@@ -196,7 +196,7 @@ Vous devriez voir dans les logs:
 ### 2. Créer un utilisateur de test
 
 ```bash
-curl -X POST http://localhost:3311/auth/register \
+curl -X POST http://localhost:3000/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Test User",
@@ -215,7 +215,7 @@ curl -X POST http://localhost:3311/auth/register \
 ### 4. Tester une recherche (usage log)
 
 ```bash
-curl -X POST http://localhost:3311/api/search \
+curl -X POST http://localhost:3000/api/search \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{

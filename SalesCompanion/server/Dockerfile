@@ -16,7 +16,7 @@ COPY server/ ./
 # or from local serviceAccountKey.json file fallback (Local development)
 
 # Expose port
-EXPOSE 3311
+EXPOSE 3000
 
 # Start Firestore server
 CMD ["node", "server-firestore.js"]

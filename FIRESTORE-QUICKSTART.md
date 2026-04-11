@@ -79,7 +79,7 @@ Le serveur fonctionne **sans problème**:
 
 ### Une fois Firestore configuré
 
-1. Créez un utilisateur: `http://localhost:3311/admin`
+1. Créez un utilisateur: `http://localhost:3000/admin`
 2. Ouvrez Firebase Console → Firestore
 3. Collection `admin_users` devrait montrer l'utilisateur → **Synchronisation en action!**
 
