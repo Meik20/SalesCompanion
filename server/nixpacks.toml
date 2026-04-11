@@ -1,4 +1,3 @@
-@"
 [phases.setup]
 nixPkgs = ["nodejs_20"]
 
@@ -10,4 +9,3 @@ cmds = []
 
 [start]
 cmd = "node server-firestore.js"
-"@ | Out-File -FilePath "nixpacks.toml" -Encoding utf8

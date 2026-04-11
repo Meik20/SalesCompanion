@@ -2,17 +2,17 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Copier uniquement package.json (pas de package-lock.json)
+# Copier package files
 COPY package.json ./
 
-# npm install génère un lock file propre — évite les conflits npm ci
+# npm install génère un lock file propre
 RUN npm install --omit=dev --no-audit --no-fund
 
 # Copier le reste du code
 COPY . .
 
 # Exposer le port
-EXPOSE 3210
+EXPOSE 3311
 
-# Démarrer le serveur
-CMD ["node", "server.js"]
+# Démarrer le serveur Firestore
+CMD ["node", "server-firestore.js"]
