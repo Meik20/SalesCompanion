@@ -1,0 +1,76 @@
+<!-- Navigation Hub - Inclure dans chaque page -->
+<style>
+.nav-hub {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.nav-hub-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: #1B7A3E;
+  color: #fff;
+  text-decoration: none;
+  font-size: 20px;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  border: none;
+  cursor: pointer;
+}
+
+.nav-hub-btn:hover {
+  background: #2ea05a;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+}
+
+.nav-hub-btn title {
+  font-size: 12px;
+}
+
+@media(max-width: 768px) {
+  .nav-hub {
+    bottom: 60px;
+    right: 10px;
+    flex-direction: column-reverse;
+  }
+}
+</style>
+
+<div class="nav-hub" id="navHub">
+  <a href="/" class="nav-hub-btn" title="Home">🏠</a>
+  <a href="/admin/" class="nav-hub-btn" title="Admin">📊</a>
+  <a href="/mobile/" class="nav-hub-btn" title="Mobile">📱</a>
+  <a href="/client/" class="nav-hub-btn" title="Desktop">💻</a>
+</div>
+
+<script>
+// Gestion du hub de navigation
+document.addEventListener('DOMContentLoaded', function() {
+  const navHub = document.getElementById('navHub');
+  if (navHub) {
+    // Masquer le bouton actuel
+    const currentPath = window.location.pathname;
+    const buttons = navHub.querySelectorAll('.nav-hub-btn');
+    
+    buttons.forEach(btn => {
+      const href = btn.getAttribute('href');
+      if (currentPath.includes(href.replace('/', ''))) {
+        btn.style.opacity = '0.4';
+        btn.style.cursor = 'default';
+        btn.disabled = true;
+      }
+    });
+  }
+});
+</script>

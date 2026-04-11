@@ -46,6 +46,15 @@ app.use('/client', express.static(clientPath));
 app.use('/mobile', express.static(mobilePath));
 app.use(express.static(path.join(__dirname, '..')));
 
+// 🏠 HOME HUB ROUTES
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'hub.html'));
+});
+
+app.get('/hub.html', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'hub.html'));
+});
+
 // 🔥 DB GUARD - ONLY FOR API ENDPOINTS (After static files)
 app.use((req, res, next) => {
   // Allow health check and static file requests
