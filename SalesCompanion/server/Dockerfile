@@ -1,22 +1,23 @@
 FROM node:20-alpine
 
-WORKDIR /app
+WORKDIR /app/SalesCompanion/server
 
-# Copy server package files
-COPY server/package.json ./
-COPY server/package-lock.json ./
+# Copy package files
+COPY SalesCompanion/server/package*.json ./
 
-# Install dependencies (clean install)
-RUN npm ci --omit=dev
+# Install dependencies
+RUN npm ci --omit=dev --no-audit --no-fund
 
 # Copy server code
-COPY server/ ./
+COPY SalesCompanion/server/ .
 
-# Firebase credentials are loaded from FIREBASE_SERVICE_ACCOUNT env variable (Production)
-# or from local serviceAccountKey.json file fallback (Local development)
+# Copy static directories (needed for serving admin/client/mobile)
+COPY SalesCompanion/admin /app/SalesCompanion/admin
+COPY SalesCompanion/client /app/SalesCompanion/client
+COPY SalesCompanion/mobile /app/SalesCompanion/mobile
 
 # Expose port
 EXPOSE 3000
 
-# Start Firestore server
+# Start server
 CMD ["node", "server-firestore.js"]
