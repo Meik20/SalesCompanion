@@ -6,8 +6,18 @@ async function initFirestore() {
   if (db) return db;
 
   try {
-    // Charger directement le fichier credentials
-    const serviceAccount = require('./salescompanion-firebase-adminsdk.json');
+    let serviceAccount;
+    
+    // Try to load from environment variable first (Railway production)
+    if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+      console.log('📦 Loading Firebase credentials from FIREBASE_SERVICE_ACCOUNT env var...');
+      serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    } 
+    // Fall back to local file (development)
+    else {
+      console.log('📁 Loading Firebase credentials from local file...');
+      serviceAccount = require('./salescompanion-firebase-adminsdk.json');
+    }
     
     if (!admin.apps.length) {
       admin.initializeApp({
@@ -20,6 +30,7 @@ async function initFirestore() {
     return db;
   } catch (error) {
     console.error('❌ Firestore initialization error:', error.message);
+    console.error('   Hint: Set FIREBASE_SERVICE_ACCOUNT env var on Railway or provide salescompanion-firebase-adminsdk.json locally');
     throw error;
   }
 }

@@ -3,14 +3,14 @@ FROM node:20-alpine
 WORKDIR /app
 
 # Copy package files FIRST (meilleur cache)
-COPY server/package*.json ./server/
+COPY SalesCompanion/server/package*.json ./SalesCompanion/server/
 
 # Install dependencies
-WORKDIR /app/server
+WORKDIR /app/SalesCompanion/server
 RUN npm ci --omit=dev --no-audit --no-fund
 
 # Copy the rest of the code
-COPY server/ .
+COPY SalesCompanion/server/ .
 
 # Firebase credentials are loaded from FIREBASE_SERVICE_ACCOUNT env variable (Production)
 # Set in Railway: Environment Variables → FIREBASE_SERVICE_ACCOUNT
