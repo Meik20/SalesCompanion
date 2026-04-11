@@ -170,8 +170,16 @@ app.post('/admin/login', async (req, res) => {
     const { email, username, password } = req.body;
     const loginId = email || username;
 
+    console.log('[POST /admin/login] Tentative de connexion pour:', loginId);
+
     if (!loginId || !password) {
+      console.log('[POST /admin/login] ❌ Champs manquants');
       return res.status(400).json({ error: 'Email and password required' });
+    }
+
+    if (!db) {
+      console.log('[POST /admin/login] ❌ Database not initialized');
+      return res.status(503).json({ error: 'Database not ready' });
     }
 
     const snap = await db.collection('admin_users')
@@ -179,24 +187,34 @@ app.post('/admin/login', async (req, res) => {
       .limit(1)
       .get();
 
+    console.log('[POST /admin/login] Recherche effectuée. Résultat:', snap.empty ? 'Vide' : 'Trouvé');
+
     if (snap.empty) {
+      console.log('[POST /admin/login] ❌ Admin non trouvé avec email:', loginId);
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
     const admin = snap.docs[0].data();
     const id = snap.docs[0].id;
 
+    console.log('[POST /admin/login] Admin trouvé. Vérification du mot de passe...');
+
     const ok = await bcrypt.compare(password, admin.password_hash);
 
     if (!ok) {
+      console.log('[POST /admin/login] ❌ Mot de passe incorrect');
       return res.status(401).json({ error: 'Invalid credentials' });
     }
+
+    console.log('[POST /admin/login] ✅ Mot de passe correct');
 
     const token = jwt.sign(
       { id, email: admin.email, role: 'admin' },
       JWT_SECRET,
       { expiresIn: '8h' }
     );
+
+    console.log('[POST /admin/login] ✅ Token généré et connexion réussie');
 
     res.json({
       token,
@@ -205,8 +223,9 @@ app.post('/admin/login', async (req, res) => {
     });
 
   } catch (e) {
-    console.error('[POST /admin/login] Error:', e);
-    res.status(500).json({ error: 'Server error' });
+    console.error('[POST /admin/login] ❌ Erreur serveur:', e.message);
+    console.error(e.stack);
+    res.status(500).json({ error: 'Server error: ' + e.message });
   }
 });
 
@@ -294,21 +313,36 @@ async function start() {
 
   try {
     db = await initializeFirestore();
+    console.log('✅ Firestore initialized');
     
     // Ensure default admin exists
     await ensureAdminExists();
+    console.log('✅ Admin verification complete');
   } catch (e) {
-    console.error("❌ Firestore init failed:", e.message);
+    console.error("❌ Initialization failed:", e.message);
+    console.error("   Server will start anyway but some features may not work");
   }
 
   app.listen(PORT, "0.0.0.0", () => {
+    const adminStatus = db ? '✅ READY' : '⚠️ NOT INITIALIZED';
     console.log(`
-================================
-🚀 Server running
-📍 Port: ${PORT}
-🔥 Firestore: ${!!db}
-================================
+╔════════════════════════════════════╗
+║   SALES COMPANION v2.0 - SERVER    ║
+╠════════════════════════════════════╣
+║ 🚀 Server running on 0.0.0.0       ║
+║ 📍 Port: ${PORT}${PORT === 3000 ? '                       ║' : '                      ║'}
+║ 🔥 Firestore: ${adminStatus}${adminStatus === '✅ READY' ? '         ║' : '       ║'}
+║ 📍 Panel Admin: http://localhost:${PORT}/admin          ║
+║ 📍 API: http://localhost:${PORT}              ║
+║ 📍 Health: http://localhost:${PORT}/health             ║
+╠════════════════════════════════════╣
+║ 🔐 DEFAULT LOGIN (CHANGE AFTER!)    ║
+║ Username: admin                    ║
+║ Password: admin123                 ║
+╚════════════════════════════════════╝
     `);
+  });
+}
   });
 }
 
