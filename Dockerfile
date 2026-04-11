@@ -1,20 +1,26 @@
 FROM node:20-alpine
 
-WORKDIR /app/SalesCompanion/server
+# Set working directory to /app
+WORKDIR /app
 
-# Copy package files
-COPY SalesCompanion/server/package*.json ./
+# Copy server package files
+COPY SalesCompanion/server/package*.json ./server/
 
 # Install dependencies
+WORKDIR /app/server
 RUN npm ci --omit=dev --no-audit --no-fund
 
-# Copy server code
-COPY SalesCompanion/server/ .
+# Go back to /app
+WORKDIR /app
 
-# Copy static directories (admin, client, mobile)
-COPY SalesCompanion/admin /app/SalesCompanion/admin
-COPY SalesCompanion/client /app/SalesCompanion/client
-COPY SalesCompanion/mobile /app/SalesCompanion/mobile
+# Copy all necessary directories
+COPY SalesCompanion/server ./server
+COPY SalesCompanion/admin ./admin
+COPY SalesCompanion/client ./client
+COPY SalesCompanion/mobile ./mobile
+
+# Set working directory back to server for CMD
+WORKDIR /app/server
 
 # Expose port
 EXPOSE 3000
