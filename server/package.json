@@ -3,10 +3,8 @@
   "version": "2.0.0",
   "main": "server.js",
   "scripts": {
-    "start": "node setup-firebase.js && node server.js",
-    "start:firestore": "node init-firestore-admin.js && node server-firestore.js",
-    "dev": "node server-mock.js",
-    "start:mock": "node server-mock.js",
+    "start": "node init-firestore-admin.js && node server-firestore.js",
+    "dev": "node server-firestore.js",
     "init-admin": "node init-firestore-admin.js",
     "init-collections": "node create-firestore-collections.js",
     "git:push": "node auto-git-push.js",
@@ -21,7 +19,6 @@
     "firebase-admin": "^13.8.0",
     "jsonwebtoken": "^9.0.0",
     "multer": "^2.0.0",
-    "sqlite3": "^6.0.1",
     "xlsx": "^0.18.5"
   }
 }

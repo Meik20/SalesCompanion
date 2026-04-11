@@ -1,15 +1,16 @@
 /**
- * Admin Database - Fallback Storage
- * Uses local file instead of Firestore if needed
+ * Admin Database - Firestore EXCLUSIVE
+ * Uses Google Cloud Firestore for all admin data
+ * Local JSON backup kept ONLY for emergency offline scenarios
  */
 
 const fs = require('fs');
 const path = require('path');
 const bcrypt = require('bcryptjs');
 
-const ADMIN_DB_PATH = path.join(__dirname, '.admin-local.json');
+const ADMIN_DB_PATH = path.join(__dirname, '.admin-firestore-backup.json');
 
-// Default admin data
+// Default admin data - used ONLY if Firestore is completely unreachable
 const DEFAULT_ADMIN = {
   username: 'admin',
   password: bcrypt.hashSync('admin123', 10),
@@ -20,21 +21,23 @@ const DEFAULT_ADMIN = {
   updated_at: new Date().toISOString()
 };
 
-// Ensure local admin database exists
+// Ensure backup admin database exists (EMERGENCY FALLBACK ONLY)
 function initializeLocalAdminDB() {
   if (!fs.existsSync(ADMIN_DB_PATH)) {
     const adminData = {
       admins: {
         [DEFAULT_ADMIN.username]: DEFAULT_ADMIN
-      }
+      },
+      note: '⚠️ This is an EMERGENCY BACKUP file. Primary data source is Firestore.'
     };
     fs.writeFileSync(ADMIN_DB_PATH, JSON.stringify(adminData, null, 2));
-    console.log('[AdminDB] Local admin database created');
+    console.log('[AdminBackup] Emergency backup admin database created');
   }
 }
 
-// Get admin by username from local storage
+// Get admin from backup storage (EMERGENCY ONLY - Firestore is primary)
 function getAdminLocally(username) {
+  console.warn('[⚠️] Using admin backup (emergency fallback) - Firestore should be the primary source');
   try {
     if (!fs.existsSync(ADMIN_DB_PATH)) {
       initializeLocalAdminDB();
@@ -42,13 +45,14 @@ function getAdminLocally(username) {
     const data = JSON.parse(fs.readFileSync(ADMIN_DB_PATH, 'utf-8'));
     return data.admins[username] || null;
   } catch (error) {
-    console.error('[AdminDB] Error reading admin data:', error.message);
+    console.error('[AdminBackup] Error reading admin data:', error.message);
     return null;
   }
 }
 
-// Update admin in local storage
+// Update admin in backup storage (EMERGENCY ONLY - Firestore is primary)
 function updateAdminLocally(username, updates) {
+  console.warn('[⚠️] Updating admin backup (emergency fallback) - Firestore should be the primary source');
   try {
     if (!fs.existsSync(ADMIN_DB_PATH)) {
       initializeLocalAdminDB();
@@ -62,17 +66,17 @@ function updateAdminLocally(username, updates) {
         updated_at: new Date().toISOString()
       };
       fs.writeFileSync(ADMIN_DB_PATH, JSON.stringify(data, null, 2));
-      console.log(`[AdminDB] Admin '${username}' updated locally`);
+      console.log(`[AdminBackup] Admin '${username}' updated in backup (emergency fallback)`);
       return true;
     }
     return false;
   } catch (error) {
-    console.error('[AdminDB] Error updating admin data:', error.message);
+    console.error('[AdminBackup] Error updating admin data:', error.message);
     return false;
   }
 }
 
-// Initialize on load
+// Initialize on module load
 initializeLocalAdminDB();
 
 module.exports = {
@@ -80,3 +84,4 @@ module.exports = {
   updateAdminLocally,
   initializeLocalAdminDB
 };
+

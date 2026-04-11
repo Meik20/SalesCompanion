@@ -2,9 +2,10 @@
 
 Application multi-plateforme de prospection commerciale B2B pour le Cameroun.
 
-**Statut**: ✅ Production (PostgreSQL)  
+**Statut**: ✅ Production (Firestore EXCLUSIVE)  
 **Version**: 2.0.0  
 **Déploiement**: Railway.app  
+**Base de Données**: 🔥 Google Cloud Firestore (EXCLUSIVE)
 
 ---
 
@@ -27,15 +28,20 @@ npm start
 - **Mot de passe**: `admin123` (changez-le obligatoirement)
 - **Port**: 3311
 
+### Prerequisites
+- Node.js 14+
+- Credentials Firestore (`GOOGLE_APPLICATION_CREDENTIALS` ou env vars)
+- Voir [FIRESTORE-EXCLUSIVE-MIGRATION.md](./FIRESTORE-EXCLUSIVE-MIGRATION.md)
+
 ---
 
 ## 📚 Documentation
 
 | Document | Description |
 |----------|-------------|
-| [DATABASE-SETUP.md](./DATABASE-SETUP.md) | Configuration PostgreSQL et clarification Firebase |
-| [README-MIGRATION.md](./README-MIGRATION.md) | Guide de migration SQLite → PostgreSQL |
-| [server/FIREBASE_SETUP.md](./server/FIREBASE_SETUP.md) | Configuration Firebase (optionnel) |
+| [FIRESTORE-EXCLUSIVE-MIGRATION.md](./FIRESTORE-EXCLUSIVE-MIGRATION.md) | ⭐ Architecture Firestore 100% + changements |
+| [server/FIRESTORE-SETUP.md](./server/FIRESTORE-SETUP.md) | Configuration Firebase |
+| [FIRESTORE-QUICKSTART.md](./FIRESTORE-QUICKSTART.md) | Quickstart Firestore |
 
 ---
 
@@ -43,10 +49,11 @@ npm start
 
 | Composant | Framework | Statut |
 |-----------|-----------|--------|
-| **Backend** | Express.js 4.18 + PostgreSQL | ✅ Production |
+| **Backend** | Express.js 4.18 + Firestore | ✅ Production |
 | **Desktop** | Electron 41.2.0 | ✅ Fonctionnel |
 | **Mobile** | PWA + Service Worker | ✅ Fonctionnel |
 | **Admin** | HTML/JS SPA | ✅ Production |
+| **Database** | Google Cloud Firestore | ✅ EXCLUSIVE |
 
 ---
 
@@ -56,20 +63,26 @@ npm start
 1. ✅ Changez le mot de passe admin (forcé au premier login)
 2. ⚠️ Configurez `JWT_SECRET` en production
 3. ⚠️ Activez HTTPS pour les déploiements
+4. ⚠️ Configurez Firestore Security Rules
 
 ### Base de données
 - **Authentification**: JWT HS256 (30 jours)
 - **Hash**: bcryptjs 2.4.3
-- **SGBD**: PostgreSQL (pas SQLite!)
+- **SGBD**: Google Cloud Firestore (EXCLUSIVE - pas PostgreSQL, pas SQLite!)
+- **Stockage**: Collections Firestore avec auto-scaling
 
 ---
 
-## ⚠️ Note sur Firebase
+## ✅ Migration Firestore COMPLETE
 
-**Fichiers Firebase présents mais non utilisés**:
-- `firebase-auth.js`, `firebase-init.js`, etc.
+**PostgreSQL et SQLite ont été complètement supprimés.**
 
-Ces fichiers sont des **vestiges optionnels**; l'application utilise PostgreSQL comme base de données principale. Voir [DATABASE-SETUP.md](./DATABASE-SETUP.md) pour plus d'infos.
+- ✅ Dépendance `sqlite3` supprimée
+- ✅ Tous les endpoints utilisent Firestore
+- ✅ Admin functions → Firestore EXCLUSIVE
+- ✅ Fallback d'urgence local documenté
+
+Voir [FIRESTORE-EXCLUSIVE-MIGRATION.md](./FIRESTORE-EXCLUSIVE-MIGRATION.md) pour les détails complets.
 
 ---
 
@@ -77,24 +90,25 @@ Ces fichiers sont des **vestiges optionnels**; l'application utilise PostgreSQL 
 
 ```
 server/
-├── server.js              # Express app principal
-├── firestore-config.js    # Config BD
-├── firestore-helpers.js   # Helpers BD
-└── FIREBASE_SETUP.md      # Setup Firebase (optionnel)
+├── server.js                    # Express app principal (Firestore)
+├── firestore-config.js          # Init Firestore
+├── firestore-helpers.js         # Helpers Firestore
+├── admin-db-local.js            # Backup d'urgence (Firestore primaire)
+└── FIRESTORE-SETUP.md           # Setup Firestore
 
 client/
-├── index.html             # Desktop UI (Electron)
-├── main.js                # Electron main process
-└── preload.js             # IPC preload
+├── index.html                   # Desktop UI (Electron)
+├── main.js                      # Electron main process
+└── preload.js                   # IPC preload
 
 admin/
-├── index.html             # Admin dashboard
-└── assets/js/auth.js      # Auth logic
+├── index.html                   # Admin dashboard
+└── assets/js/auth.js            # Auth logic
 
 mobile/
-├── index.html             # PWA mobile
-├── manifest.json          # PWA config
-└── sw.js                  # Service Worker
+├── index.html                   # PWA mobile
+├── manifest.json                # PWA config
+└── sw.js                        # Service Worker
 ```
 
 ---
