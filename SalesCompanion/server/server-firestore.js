@@ -22,7 +22,14 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// 🔥 DB GUARD (IMPORTANT POUR RAILWAY)
+// � SERVE STATIC FILES (Admin, Client, Mobile) - BEFORE DB GUARD
+const path = require('path');
+app.use('/admin', express.static(path.join(__dirname, '..', 'admin')));
+app.use('/client', express.static(path.join(__dirname, '..', 'client')));
+app.use('/mobile', express.static(path.join(__dirname, '..', 'mobile')));
+app.use(express.static(path.join(__dirname, '..')));
+
+// 🔥 DB GUARD (IMPORTANT POUR RAILWAY) - AFTER STATIC FILES
 app.use((req, res, next) => {
   if (!db && req.path !== '/health') {
     return res.status(503).json({
@@ -31,13 +38,6 @@ app.use((req, res, next) => {
   }
   next();
 });
-
-// 📁 SERVE STATIC FILES (Admin, Client, Mobile)
-const path = require('path');
-app.use('/admin', express.static(path.join(__dirname, '..', 'admin')));
-app.use('/client', express.static(path.join(__dirname, '..', 'client')));
-app.use('/mobile', express.static(path.join(__dirname, '..', 'mobile')));
-app.use(express.static(path.join(__dirname, '..')));
 
 // ─────────────────────────────────────────────
 // ENSURE DEFAULT ADMIN EXISTS
