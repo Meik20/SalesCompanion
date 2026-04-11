@@ -1,0 +1,24 @@
+{
+  "name": "sales-companion-server",
+  "version": "2.0.0",
+  "main": "server-firestore.js",
+  "scripts": {
+    "start": "node server-firestore.js",
+    "dev": "node server-firestore.js",
+    "init-admin": "node init-firestore-admin.js",
+    "init-collections": "node create-firestore-collections.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "firebase-admin": "^13.8.0",
+    "jsonwebtoken": "^9.0.0",
+    "multer": "^2.0.0",
+    "xlsx": "^0.18.5"
+  }
+}

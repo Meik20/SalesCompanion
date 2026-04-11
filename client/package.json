@@ -1,0 +1,51 @@
+{
+  "name": "b2b-intelligence-cameroun",
+  "version": "1.0.0",
+  "description": "Recensement & Cartographie des entreprises camerounaises pour la prospection B2B",
+  "main": "main.js",
+  "author": "B2B Cameroun",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-builder --win --x64",
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux"
+  },
+  "build": {
+    "appId": "com.b2b.cameroun",
+    "productName": "B2B Intelligence Cameroun",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "assets/**",
+      "node_modules/**"
+    ],
+    "publish": {
+      "provider": "github",
+      "owner": "Meik20",
+      "repo": "SalesCompanion"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "B2B Cameroun"
+    }
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.3",
+    "electron-store": "^8.1.0"
+  },
+  "devDependencies": {
+    "electron": "^41.2.0",
+    "electron-builder": "^26.8.1"
+  }
+}
