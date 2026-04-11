@@ -77,6 +77,14 @@ async function ensureAdminExists() {
     
     if (!adminSnap.empty) {
       console.log('✅ Default admin already exists');
+      // Ensure role field is set
+      const admin = adminSnap.docs[0];
+      if (!admin.data().role) {
+        console.log('📝 Updating admin with role field');
+        await db.collection('admin_users').doc(admin.id).update({
+          role: 'admin'
+        });
+      }
       return;
     }
     
