@@ -12,6 +12,9 @@ RUN npm ci --omit=dev
 # Copy server code
 COPY server/ ./
 
+# Copy Firebase service account key (stored in parent directory)
+COPY serviceAccountKey.json ./
+
 # Expose port
 EXPOSE 3311
 
