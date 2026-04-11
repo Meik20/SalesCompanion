@@ -15,6 +15,7 @@ const os = require('os');
 // ── FIRESTORE FOR DATA PERSISTENCE (EXCLUSIVE) ──────────────────────────────
 // All data stored exclusively in Google Cloud Firestore
 // PostgreSQL & SQLite support removed
+// admin.initializeApp(...)
 const { getFirestore, initFirestore, isFirestoreReady } = require('./firestore-config');
 const firestoreHelpers = require('./firestore-helpers');
 
