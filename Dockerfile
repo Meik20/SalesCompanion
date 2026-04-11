@@ -6,14 +6,17 @@ WORKDIR /app
 COPY server/package.json ./
 COPY server/package-lock.json ./
 
-# Install dependencies (clean install)
+# Install dependencies (clean install, omit dev dependencies)
 RUN npm ci --omit=dev
 
-# Copy server code
+# Copy all server code
 COPY server/ ./
+
+# Copy Firebase config files from root if they exist
+COPY serviceAccountKey.json ./
 
 # Expose port
 EXPOSE 3311
 
-# Start Firestore server
+# Start the Firestore server
 CMD ["node", "server-firestore.js"]
