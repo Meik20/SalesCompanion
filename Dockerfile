@@ -8,10 +8,15 @@ COPY SalesCompanion/server/package*.json ./
 # Install dependencies
 RUN npm ci --omit=dev --no-audit --no-fund
 
-# Copy the rest of the code
+# Copy server code
 COPY SalesCompanion/server/ .
 
-# Expose port (Railway uses process.env.PORT)
+# Copy static directories (admin, client, mobile)
+COPY SalesCompanion/admin /app/SalesCompanion/admin
+COPY SalesCompanion/client /app/SalesCompanion/client
+COPY SalesCompanion/mobile /app/SalesCompanion/mobile
+
+# Expose port
 EXPOSE 3000
 
 # Start server
