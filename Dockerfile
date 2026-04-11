@@ -2,18 +2,18 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy root-level Firebase config files
-COPY serviceAccountKey.json ./
+# Copy package files FIRST (meilleur cache)
+COPY server/package*.json ./server/
 
-# Copy server directory
-COPY server/ ./server/
-
-# Install dependencies from server directory
+# Install dependencies
 WORKDIR /app/server
 RUN npm ci --omit=dev --no-audit --no-fund
 
-# Expose port
+# Copy the rest of the code
+COPY server/ .
+
+# Expose port (Railway utilise process.env.PORT)
 EXPOSE 3311
 
-# Start the Firestore server
+# Start server
 CMD ["node", "server-firestore.js"]
