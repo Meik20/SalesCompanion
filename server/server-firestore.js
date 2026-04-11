@@ -89,7 +89,14 @@ async function initializeFirestore() {
     console.log("📦 Using FIREBASE_SERVICE_ACCOUNT env variable (Railway)");
     try {
       const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+      
+      // Handle \n escaping in private key
+      if (serviceAccount.private_key) {
+        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+      }
+      
       credential = admin.credential.cert(serviceAccount);
+      console.log("✅ Firebase initialized");
     } catch (e) {
       console.error("❌ Failed to parse FIREBASE_SERVICE_ACCOUNT:", e.message);
       throw e;
