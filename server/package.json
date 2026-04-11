@@ -1,15 +1,15 @@
 {
   "name": "sales-companion-server",
   "version": "2.0.0",
-  "main": "server.js",
+  "main": "server-firestore.js",
   "scripts": {
-    "start": "node init-firestore-admin.js && node server-firestore.js",
+    "start": "node server-firestore.js",
     "dev": "node server-firestore.js",
     "init-admin": "node init-firestore-admin.js",
-    "init-collections": "node create-firestore-collections.js",
-    "git:push": "node auto-git-push.js",
-    "git:push:force": "node auto-git-push.js --force",
-    "git:status": "git status"
+    "init-collections": "node create-firestore-collections.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
