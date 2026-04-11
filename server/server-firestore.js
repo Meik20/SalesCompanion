@@ -29,9 +29,35 @@ async function initializeFirestore() {
   try {
     const admin = require('firebase-admin');
     const path = require('path');
+    const fs = require('fs');
     
-    // Load service account key
-    const serviceAccountPath = path.join(__dirname, '..', 'serviceAccountKey.json');
+    // Load service account key from multiple possible locations
+    let serviceAccountPath;
+    const possiblePaths = [
+      // Check GOOGLE_APPLICATION_CREDENTIALS env var first
+      process.env.GOOGLE_APPLICATION_CREDENTIALS,
+      // Local development (running from server/)
+      path.join(__dirname, '..', 'serviceAccountKey.json'),
+      // Docker container (running from /app/server)
+      path.join(__dirname, '..', 'serviceAccountKey.json'),
+      // Alternative Docker path (/app)
+      path.join(__dirname, '../../serviceAccountKey.json'),
+      // Current directory
+      path.join(process.cwd(), 'serviceAccountKey.json')
+    ].filter(Boolean); // Remove undefined/null values
+    
+    for (const tryPath of possiblePaths) {
+      if (fs.existsSync(tryPath)) {
+        serviceAccountPath = tryPath;
+        console.log(`✅ Found service account at: ${tryPath}`);
+        break;
+      }
+    }
+    
+    if (!serviceAccountPath) {
+      throw new Error(`Cannot find serviceAccountKey.json. Tried paths:\n${possiblePaths.join('\n')}`);
+    }
+    
     const serviceAccount = require(serviceAccountPath);
     
     if (!admin.apps.length) {

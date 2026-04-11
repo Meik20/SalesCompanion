@@ -2,8 +2,11 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy entire project
-COPY . .
+# Copy root-level Firebase config files
+COPY serviceAccountKey.json ./
+
+# Copy server directory
+COPY server/ ./server/
 
 # Install dependencies from server directory
 WORKDIR /app/server
