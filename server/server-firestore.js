@@ -28,42 +28,50 @@ app.use(express.urlencoded({ limit: '50mb' }));
 async function initializeFirestore() {
   try {
     const admin = require('firebase-admin');
-    const path = require('path');
-    const fs = require('fs');
     
-    // Load service account key from multiple possible locations
-    let serviceAccountPath;
-    const possiblePaths = [
-      // Check GOOGLE_APPLICATION_CREDENTIALS env var first
-      process.env.GOOGLE_APPLICATION_CREDENTIALS,
-      // Local development (running from server/)
-      path.join(__dirname, '..', 'serviceAccountKey.json'),
-      // Docker container (running from /app/server)
-      path.join(__dirname, '..', 'serviceAccountKey.json'),
-      // Alternative Docker path (/app)
-      path.join(__dirname, '../../serviceAccountKey.json'),
-      // Current directory
-      path.join(process.cwd(), 'serviceAccountKey.json')
-    ].filter(Boolean); // Remove undefined/null values
+    // Initialize Firebase Admin with environment variables (Railway compatible)
+    // Falls back to local serviceAccountKey.json for local development
+    let credential;
     
-    for (const tryPath of possiblePaths) {
-      if (fs.existsSync(tryPath)) {
-        serviceAccountPath = tryPath;
-        console.log(`✅ Found service account at: ${tryPath}`);
-        break;
+    if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
+      // Railway deployment with environment variables
+      console.log('📋 Using Firebase credentials from environment variables (Railway)');
+      credential = admin.credential.cert({
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+      });
+    } else {
+      // Local development fallback - try to load from file
+      const path = require('path');
+      const fs = require('fs');
+      
+      let serviceAccountPath;
+      const possiblePaths = [
+        path.join(__dirname, '..', 'serviceAccountKey.json'),
+        path.join(__dirname, '../../serviceAccountKey.json'),
+        path.join(process.cwd(), 'serviceAccountKey.json')
+      ];
+      
+      for (const tryPath of possiblePaths) {
+        if (fs.existsSync(tryPath)) {
+          serviceAccountPath = tryPath;
+          console.log(`📋 Using Firebase credentials from file: ${tryPath}`);
+          break;
+        }
       }
+      
+      if (!serviceAccountPath) {
+        throw new Error(`❌ No Firebase credentials found. Either provide environment variables (FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY) or serviceAccountKey.json file`);
+      }
+      
+      const serviceAccount = require(serviceAccountPath);
+      credential = admin.credential.cert(serviceAccount);
     }
-    
-    if (!serviceAccountPath) {
-      throw new Error(`Cannot find serviceAccountKey.json. Tried paths:\n${possiblePaths.join('\n')}`);
-    }
-    
-    const serviceAccount = require(serviceAccountPath);
     
     if (!admin.apps.length) {
       admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-        projectId: serviceAccount.project_id
+        credential: credential
       });
     }
     
