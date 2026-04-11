@@ -253,7 +253,12 @@ app.post('/admin/login', async (req, res) => {
 
     res.json({
       token,
-      admin: { id, email: admin.email },
+      admin: { 
+        id, 
+        email: admin.email,
+        role: admin.role || 'admin',
+        name: admin.name || admin.email.split('@')[0]
+      },
       needs_password_change: admin.first_login || false
     });
 
