@@ -1,0 +1,13 @@
+@"
+[phases.setup]
+nixPkgs = ["nodejs_20"]
+
+[phases.install]
+cmds = ["npm install --omit=dev --no-audit --no-fund"]
+
+[phases.build]
+cmds = []
+
+[start]
+cmd = "node server-firestore.js"
+"@ | Out-File -FilePath "nixpacks.toml" -Encoding utf8
