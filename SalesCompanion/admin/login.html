@@ -259,7 +259,7 @@
   </style>
 </head>
 <body>
-  <div class="login-container">
+  <div class="login-container" id="login-container">
     <!-- Header -->
     <div class="login-header">
       <div class="login-icon">🏢</div>
@@ -386,29 +386,42 @@
     // INITIALIZATION
     // ============================================
     document.addEventListener('DOMContentLoaded', async () => {
-      console.log('[Admin Login] Initializing with Firestore...');
-      
-      // Clean up any corrupted data
-      cleanupLoginData();
-      
-      // Set default server URL (ALWAYS from default - hardcoded)
-      serverUrlInput.value = DEFAULT_HOST;
-      
-      // NEVER pre-fill username for security
-      usernameInput.value = '';
-      
-      // NEVER pre-fill password
-      passwordInput.value = '';
-      
-      // Check if already logged in via Firestore
-      const sessionId = localStorage.getItem(STORAGE_KEY_SESSION_ID);
-      if (sessionId) {
-        console.log('[Admin Login] Session found in storage, validating via Firestore...');
-        await validateAndRedirectFromFirestore(sessionId);
+      try {
+        console.log('[Admin Login] Initializing with Firestore...');
+        
+        // Clean up any corrupted data
+        cleanupLoginData();
+        
+        // Set default server URL (ALWAYS from default - hardcoded)
+        serverUrlInput.value = DEFAULT_HOST;
+        
+        // NEVER pre-fill username for security
+        usernameInput.value = '';
+        
+        // NEVER pre-fill password
+        passwordInput.value = '';
+        
+        // Show the login form - ALWAYS show it by default
+        document.getElementById('login-container')?.style.display ? null : console.log('[Admin Login] Login container visible');
+        
+        // Check if already logged in via Firestore
+        const sessionId = localStorage.getItem(STORAGE_KEY_SESSION_ID);
+        if (sessionId) {
+          console.log('[Admin Login] Session found in storage, validating via Firestore...');
+          // Don't await - let it redirect in background if valid
+          validateAndRedirectFromFirestore(sessionId).catch(err => {
+            console.warn('[Admin Login] Session validation failed, showing login form:', err);
+          });
+        } else {
+          console.log('[Admin Login] No session found - showing login form');
+        }
+        
+        // Focus username field
+        usernameInput.focus();
+      } catch (error) {
+        console.error('[Admin Login] Initialization error:', error);
+        console.log('[Admin Login] Showing login form despite error');
       }
-      
-      // Focus username field
-      usernameInput.focus();
     });
 
     // ============================================

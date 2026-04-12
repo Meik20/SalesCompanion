@@ -319,8 +319,9 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
 // ── STATIC FILES ────────────────────────────────────────────────
-// Admin panel
-app.use('/admin', express.static(path.join(__dirname, '..', 'admin')));
+// Admin panel - disable auto-indexing to prevent serving index.html for /admin/
+// This allows explicit routes below to control routing (login.html vs index.html)
+app.use('/admin', express.static(path.join(__dirname, '..', 'admin'), { index: false }));
 // Mobile PWA
 app.use('/mobile', express.static(path.join(__dirname, '..', 'mobile')));
 
@@ -1041,11 +1042,8 @@ app.get('/', (req, res) => {
   res.redirect('/admin');
 });
 
-// ── STATIC FILES (After all API routes to avoid conflicts) ──────
-app.use('/admin', express.static(path.join(__dirname, '..', 'admin'), { index: ['index.html'] }));
-app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, '..', 'admin', 'index.html')));
-
 // ── GLOBAL ERROR HANDLER ────────────────────────────────────────
+
 app.use((err, req, res, next) => {
   console.error('[Erreur serveur]', err.message);
   res.status(500).json({ error: err.message || 'Erreur interne du serveur' });
