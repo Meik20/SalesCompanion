@@ -1166,10 +1166,17 @@ app.use((err, req, res, next) => {
 });
 
 // ── FALLBACK ROUTES FOR ADMIN ─────────────────────────────────
-// Catch any unhandled /admin/* requests and serve login.html
-app.get('/admin/*', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'admin', 'login.html'));
-});
+// IMPORTANT: Do NOT use wildcard app.get('/admin/*') here as it would
+// intercept all /admin/* requests including API endpoints like /init
+// 
+// Instead, specific routes above handle:
+// - GET /admin/ → login.html
+// - GET /admin/login.html → login.html  
+// - GET /admin/index.html → index.html
+// - POST /admin/init → initialize admin
+// - Other API routes (config, stats, users, etc.)
+//
+// All other static assets are served by express.static middleware
 
 // ── START SERVER ─────────────────────────────────────────────────
 async function start() {
