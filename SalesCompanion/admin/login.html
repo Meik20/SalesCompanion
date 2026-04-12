@@ -470,10 +470,21 @@
           throw new Error('Pas de token reçu');
         }
         
-        console.log('[Admin Login] ✅ Authentication successful');
+        // Validate role
+        const role = data.role || 'user';
+        const validRoles = ['admin', 'moderator', 'manager'];
+        if (!validRoles.includes(role)) {
+          throw new Error('Rôle non autorisé: ' + role);
+        }
+        
+        console.log('[Admin Login] ✅ Authentication successful - Role:', role);
         
         // Save host in localStorage (cache local)
         localStorage.setItem(STORAGE_KEY_HOST, serverUrl);
+        
+        // Store role and username in localStorage
+        localStorage.setItem('sc_admin_role', role);
+        localStorage.setItem('sc_admin_username', username);
         
         // Store session in Firestore (source of truth)
         const sessionId = generateSessionId();
@@ -481,6 +492,7 @@
           username,
           token: data.token,
           host: serverUrl,
+          role,
           createdAt: new Date(),
           lastSeen: new Date(),
           expiresAt: new Date(Date.now() + 8 * 60 * 60 * 1000), // 8 hours

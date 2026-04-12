@@ -645,23 +645,50 @@ app.post('/admin/login', async (req, res) => {
   try {
     const { username, password } = req.body;
     console.log('[POST /admin/login] Attempting login for:', username);
+    
+    // Get admin from Firestore
     const admin = await getAdminByUsernameFirestore(username);
     if (!admin) {
-      console.log('[POST /admin/login] Admin not found');
+      console.log('[POST /admin/login] Admin not found in Firestore');
       return res.status(401).json({ error: 'Identifiants incorrects' });
     }
+    
+    // Validate password
     const passwordMatch = bcrypt.compareSync(password, admin.password);
     console.log('[POST /admin/login] Password match:', passwordMatch);
     if (!passwordMatch) {
       return res.status(401).json({ error: 'Identifiants incorrects' });
     }
-    const token = jwt.sign({ id: admin.id, username, isAdmin: true }, JWT_SECRET, { expiresIn: '8h' });
-    console.log('[POST /admin/login] Login successful');
+    
+    // VALIDATE ROLE from Firestore
+    const role = admin.role || 'user';
+    const validRoles = ['admin', 'moderator', 'manager'];
+    
+    if (!validRoles.includes(role)) {
+      console.log('[POST /admin/login] Invalid role:', role);
+      return res.status(403).json({ error: 'Accès refusé - rôle non autorisé' });
+    }
+    
+    console.log('[POST /admin/login] ✅ Admin authenticated with role:', role);
+    
+    // Create JWT token with role included
+    const token = jwt.sign({ 
+      id: admin.id, 
+      username, 
+      role,
+      isAdmin: role === 'admin',
+      isModerator: role === 'moderator',
+      isManager: role === 'manager'
+    }, JWT_SECRET, { expiresIn: '8h' });
+    
+    console.log('[POST /admin/login] Login successful for:', username, 'role:', role);
     
     // Check if this is first login
     const needsPasswordChange = admin.first_login === true || admin.first_login === 1;
     res.json({ 
       token, 
+      role,
+      username,
       needs_password_change: needsPasswordChange,
       message: needsPasswordChange ? '⚠️ Veuillez changer votre mot de passe avant de continuer' : 'Connexion réussie'
     });
@@ -671,7 +698,51 @@ app.post('/admin/login', async (req, res) => {
   }
 });
 
-// ── ADMIN CONFIG ─────────────────────────────────────────────────
+// ── ADMIN INITIALIZATION (First time setup) ──────────────────────
+app.post('/admin/init', async (req, res) => {
+  try {
+    console.log('[POST /admin/init] Admin initialization request');
+    
+    // Check if admin already exists
+    const existingAdmin = await getAdminByUsernameFirestore('admin');
+    if (existingAdmin) {
+      return res.status(400).json({ error: 'Admin déjà initialisé. Impossible de réinitialiser.' });
+    }
+    
+    // Create default admin
+    const passwordHash = bcrypt.hashSync('admin123', 10);
+    const adminData = {
+      username: 'admin',
+      password: passwordHash,
+      email: 'admin@salescompanion.local',
+      name: 'Administrator',
+      role: 'admin',
+      first_login: true,
+      created_at: new Date(),
+      updated_at: new Date(),
+      last_login: null,
+      active: true
+    };
+    
+    await db.collection('admins').doc('admin').set(adminData);
+    console.log('[POST /admin/init] ✅ Default admin created');
+    
+    res.json({ 
+      success: true,
+      message: 'Admin par défaut créé avec succès',
+      credentials: {
+        username: 'admin',
+        password: 'admin123',
+        role: 'admin'
+      }
+    });
+  } catch (e) {
+    console.error('[POST /admin/init] Error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── ADMIN LOGIN ──────────────────────────────────────────────────
 app.get('/admin/config', adminMiddleware, async (req, res) => {
   try {
     console.log('[GET /admin/config] Fetching configuration...');
