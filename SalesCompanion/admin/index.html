@@ -584,9 +584,79 @@ let adminToken = authManager.getToken();
 let allUsers=[],coPage=1,coSearchTimer=null;
 const PLAN_INFO={free:{label:'Gratuit',badge:'b-free',icon:'🆓'},starter:{label:'Starter',badge:'b-starter',icon:'🚀'},pro:{label:'Pro',badge:'b-pro',icon:'⭐'},enterprise:{label:'Entreprise',badge:'b-enterprise',icon:'🏢'}};
 
+// ====================================================
+// FIRESTORE SESSION VALIDATION FUNCTION
+// ====================================================
+async function validateAdminSessionFromFirestore() {
+  try {
+    const sessionId = localStorage.getItem('sc_admin_session_id');
+    if (!sessionId) {
+      console.log('[Admin Dashboard] No Firestore session ID found');
+      return false;
+    }
+
+    // Wait for Firebase to be initialized
+    if (!firebase.apps || firebase.apps.length === 0) {
+      console.log('[Admin Dashboard] Firebase not initialized, using localStorage fallback');
+      return false;
+    }
+
+    const db = firebase.firestore();
+    const sessionDoc = await db.collection('admin_sessions').doc(sessionId).get();
+    
+    if (!sessionDoc.exists) {
+      console.log('[Admin Dashboard] Session document not found in Firestore');
+      localStorage.removeItem('sc_admin_session_id');
+      return false;
+    }
+
+    const sessionData = sessionDoc.data();
+    
+    // Check expiration
+    const expiresAt = sessionData.expiresAt?.toDate?.() || new Date(sessionData.expiresAt);
+    if (new Date() > expiresAt) {
+      console.log('[Admin Dashboard] Session expired');
+      await db.collection('admin_sessions').doc(sessionId).update({
+        isActive: false,
+        expiredAt: new Date()
+      });
+      localStorage.removeItem('sc_admin_session_id');
+      localStorage.removeItem('sc_admin_token');
+      return false;
+    }
+
+    // Check if active
+    if (!sessionData.isActive) {
+      console.log('[Admin Dashboard] Session marked as inactive');
+      localStorage.removeItem('sc_admin_session_id');
+      localStorage.removeItem('sc_admin_token');
+      return false;
+    }
+
+    // Update last seen
+    await db.collection('admin_sessions').doc(sessionId).update({
+      lastSeen: new Date()
+    });
+    
+    console.log('[Admin Dashboard] ✅ Valid session found in Firestore');
+    return true;
+  } catch (error) {
+    console.error('[Admin Dashboard] Firestore validation error:', error);
+    return false;
+  }
+}
+
 // VÉRIFICATION SYNCHRONE AU CHARGEMENT - PAS DE FLASH
 if(authManager.isAuthenticated()) {
   showApp();
+  // Asynchronously validate with Firestore after page loads
+  setTimeout(async () => {
+    const isValid = await validateAdminSessionFromFirestore();
+    if (!isValid) {
+      console.log('[Admin Dashboard] Firestore validation failed, logging out');
+      logout();
+    }
+  }, 500);
 } else {
   document.getElementById('auth-page').style.display='flex';
   document.getElementById('app').style.display='none';
@@ -662,11 +732,36 @@ async function handleLoginSubmit(event) {
     
     console.log('[Admin Auth] ✅ Connected successfully');
     
-    // Store token
+    // Generate session ID
+    const sessionId = 'admin_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    
+    // Store token in localStorage
     adminToken = data.token;
     authManager.setToken(adminToken);
     localStorage.setItem('admin_token', data.token);
     localStorage.setItem('admin_username', username);
+    localStorage.setItem('sc_admin_session_id', sessionId);
+    
+    // Store session in Firestore (if available)
+    try {
+      if (firebase.apps && firebase.apps.length > 0) {
+        const db = firebase.firestore();
+        const sessionData = {
+          username,
+          token: data.token,
+          host: host,
+          createdAt: new Date(),
+          lastSeen: new Date(),
+          expiresAt: new Date(Date.now() + 8 * 60 * 60 * 1000), // 8 hours
+          isActive: true
+        };
+        
+        await db.collection('admin_sessions').doc(sessionId).set(sessionData);
+        console.log('[Admin Auth] ✅ Session stored in Firestore');
+      }
+    } catch (firestoreError) {
+      console.warn('[Admin Auth] ⚠️ Firestore storage failed (continuing with localStorage):', firestoreError);
+    }
     
     // Check if password change required
     if (data.needs_password_change) {
@@ -852,6 +947,7 @@ function filterUsers() {
 // ============================================
 // LOGOUT FUNCTION
 // ============================================
+function logout() {
   console.log('[Auth] Logout initiated...');
   // Clear admin token FIRST (before Firebase logout)
   adminToken = null;
@@ -863,6 +959,25 @@ function filterUsers() {
       localStorage.removeItem(key);
     }
   });
+  
+  // Clear admin session from Firestore and localStorage
+  const sessionId = localStorage.getItem('sc_admin_session_id');
+  if (sessionId && typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0) {
+    try {
+      const db = firebase.firestore();
+      db.collection('admin_sessions').doc(sessionId).update({
+        isActive: false,
+        loggedOutAt: new Date()
+      }).catch(err => console.log('[Auth] Firestore session logout error (ignored):', err));
+    } catch (e) {
+      console.log('[Auth] Could not mark session inactive in Firestore');
+    }
+  }
+  
+  // Clear session storage
+  localStorage.removeItem('sc_admin_session_id');
+  localStorage.removeItem('sc_admin_token');
+  localStorage.removeItem('sc_admin_username');
   
   // Sign out from Firebase (if initialized)
   if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0) {

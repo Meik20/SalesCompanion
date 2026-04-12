@@ -321,13 +321,34 @@
     </div>
   </div>
 
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
   <!-- Script -->
   <script>
+    // ============================================
+    // FIREBASE CONFIGURATION
+    // ============================================
+    const firebaseConfig = {
+      apiKey: "AIzaSyCVJxyeysHWDQ7yECTb-GApJz7u8s5l7N0",
+      authDomain: "sales-companion-9cf56.firebaseapp.com",
+      projectId: "sales-companion-9cf56",
+      storageBucket: "sales-companion-9cf56.firebasestorage.app",
+      messagingSenderId: "1058275289756",
+      appId: "1:1058275289756:web:534cd79d5eb373348f5b59"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
     // ============================================
     // CONFIGURATION
     // ============================================
     const STORAGE_KEY_HOST = 'sc_admin_host';
     const STORAGE_KEY_TOKEN = 'sc_admin_token';
+    const STORAGE_KEY_SESSION_ID = 'sc_admin_session_id';
     const STORAGE_KEY_USERNAME = 'sc_admin_username';
     const DEFAULT_HOST = 'https://salescompanion-production-a34d.up.railway.app';
 
@@ -346,18 +367,18 @@
     // ============================================
     // INITIALIZATION
     // ============================================
-    document.addEventListener('DOMContentLoaded', () => {
-      console.log('[Admin Login] Initializing...');
+    document.addEventListener('DOMContentLoaded', async () => {
+      console.log('[Admin Login] Initializing with Firestore...');
       
       // Set default server URL
       const savedHost = localStorage.getItem(STORAGE_KEY_HOST);
       serverUrlInput.value = savedHost || DEFAULT_HOST;
       
-      // Check if already logged in
-      const token = localStorage.getItem(STORAGE_KEY_TOKEN);
-      if (token) {
-        console.log('[Admin Login] Token found, checking validity...');
-        validateAndRedirect(token);
+      // Check if already logged in via Firestore
+      const sessionId = localStorage.getItem(STORAGE_KEY_SESSION_ID);
+      if (sessionId) {
+        console.log('[Admin Login] Session found in storage, validating via Firestore...');
+        await validateAndRedirectFromFirestore(sessionId);
       }
       
       // Focus username field
@@ -420,10 +441,33 @@
         
         console.log('[Admin Login] ✅ Authentication successful');
         
-        // Save credentials
+        // Save host in localStorage (cache local)
         localStorage.setItem(STORAGE_KEY_HOST, serverUrl);
-        localStorage.setItem(STORAGE_KEY_TOKEN, data.token);
-        localStorage.setItem(STORAGE_KEY_USERNAME, username);
+        
+        // Store session in Firestore (source of truth)
+        const sessionId = generateSessionId();
+        const sessionData = {
+          username,
+          token: data.token,
+          host: serverUrl,
+          createdAt: new Date(),
+          lastSeen: new Date(),
+          expiresAt: new Date(Date.now() + 8 * 60 * 60 * 1000), // 8 hours
+          isActive: true
+        };
+        
+        try {
+          await db.collection('admin_sessions').doc(sessionId).set(sessionData);
+          console.log('[Admin Login] ✅ Session stored in Firestore');
+          
+          // Save session ID in localStorage
+          localStorage.setItem(STORAGE_KEY_SESSION_ID, sessionId);
+          localStorage.setItem(STORAGE_KEY_TOKEN, data.token);
+        } catch (firestoreError) {
+          console.warn('[Admin Login] ⚠️ Firestore save failed, using localStorage fallback:', firestoreError);
+          // Fallback: keep using localStorage if Firestore fails
+          localStorage.setItem(STORAGE_KEY_TOKEN, data.token);
+        }
         
         // Show success
         showMessage(successMsg, '✅ Connexion réussie ! Redirection...');
@@ -443,8 +487,74 @@
     }
 
     // ============================================
-    // VALIDATION & REDIRECT
+    // VALIDATION & REDIRECT (Firestore + Fallback)
     // ============================================
+
+    // Generate unique session ID
+    function generateSessionId() {
+      return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    }
+
+    // Validate session from Firestore
+    async function validateAndRedirectFromFirestore(sessionId) {
+      try {
+        const sessionDoc = await db.collection('admin_sessions').doc(sessionId).get();
+        
+        if (!sessionDoc.exists) {
+          console.log('[Admin Login] Session document not found in Firestore');
+          localStorage.removeItem(STORAGE_KEY_SESSION_ID);
+          localStorage.removeItem(STORAGE_KEY_TOKEN);
+          localStorage.removeItem(STORAGE_KEY_HOST);
+          return;
+        }
+
+        const sessionData = sessionDoc.data();
+        
+        // Check expiration
+        const expiresAt = sessionData.expiresAt?.toDate?.() || new Date(sessionData.expiresAt);
+        if (new Date() > expiresAt) {
+          console.log('[Admin Login] Session expired in Firestore');
+          await db.collection('admin_sessions').doc(sessionId).update({
+            isActive: false,
+            expiredAt: new Date()
+          });
+          localStorage.removeItem(STORAGE_KEY_SESSION_ID);
+          localStorage.removeItem(STORAGE_KEY_TOKEN);
+          localStorage.removeItem(STORAGE_KEY_HOST);
+          return;
+        }
+
+        // Check if active
+        if (!sessionData.isActive) {
+          console.log('[Admin Login] Session marked as inactive in Firestore');
+          localStorage.removeItem(STORAGE_KEY_SESSION_ID);
+          localStorage.removeItem(STORAGE_KEY_TOKEN);
+          localStorage.removeItem(STORAGE_KEY_HOST);
+          return;
+        }
+
+        // Session valid - restore state and redirect
+        console.log('[Admin Login] Valid session found in Firestore, redirecting to admin panel');
+        localStorage.setItem(STORAGE_KEY_TOKEN, sessionData.token);
+        localStorage.setItem(STORAGE_KEY_HOST, sessionData.host);
+        localStorage.setItem(STORAGE_KEY_USERNAME, sessionData.username);
+        
+        // Update last seen in Firestore
+        await db.collection('admin_sessions').doc(sessionId).update({
+          lastSeen: new Date()
+        });
+        
+        // Redirect to admin panel
+        window.location.href = './index.html';
+      } catch (error) {
+        console.error('[Admin Login] Error validating session from Firestore:', error);
+        localStorage.removeItem(STORAGE_KEY_SESSION_ID);
+        localStorage.removeItem(STORAGE_KEY_TOKEN);
+        // Fallback continues silently
+      }
+    }
+
+    // Validate token (legacy fallback)
     async function validateAndRedirect(token) {
       const serverUrl = localStorage.getItem(STORAGE_KEY_HOST) || DEFAULT_HOST;
       
@@ -457,7 +567,7 @@
         
         if (response.ok) {
           console.log('[Admin Login] Token valid, redirecting...');
-          window.location.href = './';
+          window.location.href = './index.html';
         } else {
           console.log('[Admin Login] Token invalid');
           localStorage.removeItem(STORAGE_KEY_TOKEN);
