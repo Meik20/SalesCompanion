@@ -541,12 +541,24 @@ function setServerHost(host) {
 let API = getServerHost();
 console.log('[API] Server host:', API);
 
-// Initialize host field on page load
+// Initialize host field and form on page load
 document.addEventListener('DOMContentLoaded', () => {
+  console.log('[Auth] Initializing login form');
+  
+  // Set host field with production URL as default
   const hostField = document.getElementById('login-host');
   if (hostField) {
-    hostField.value = localStorage.getItem('sc_admin_host') || 'http://localhost:3000';
+    hostField.value = localStorage.getItem('sc_admin_host') || 'https://salescompanion-production-a34d.up.railway.app';
   }
+  
+  // Keep username field empty (don't pre-fill for security)
+  const usernameField = document.getElementById('login-email');
+  if (usernameField) {
+    usernameField.value = '';
+  }
+  
+  // Check for auto-login
+  checkRememberedLogin();
 });
 
 // Auth Manager
@@ -719,20 +731,6 @@ async function checkRememberedLogin() {
     }
   }
 }
-
-// Initialize on DOM ready
-document.addEventListener('DOMContentLoaded', () => {
-  console.log('[Auth] Initializing login system with Firestore role validation');
-  
-  // Pre-fill username if remembered
-  const rememberedUsername = localStorage.getItem('admin_username');
-  if (rememberedUsername) {
-    document.getElementById('login-email').value = rememberedUsername;
-  }
-  
-  // Check for auto-login
-  checkRememberedLogin();
-});
 
 // Legacy function compatibility
 async function doLogin(){
