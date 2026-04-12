@@ -714,8 +714,9 @@ if(authManager.isAuthenticated()) {
     }
   }, 500);
 } else {
-  document.getElementById('auth-page').style.display='flex';
-  document.getElementById('app').style.display='none';
+  // Redirect to login page if not authenticated
+  console.log('[Admin Dashboard] No valid token found, redirecting to login');
+  window.location.href = './login.html';
 }
 
 // =====================================================

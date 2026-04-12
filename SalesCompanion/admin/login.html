@@ -474,7 +474,7 @@
         
         // Redirect after 1 second
         setTimeout(() => {
-          window.location.href = './';
+          window.location.href = './index.html';
         }, 1000);
         
       } catch (error) {
@@ -545,7 +545,7 @@
         });
         
         // Redirect to admin panel
-        window.location.href = './index.html';
+        window.location.href = './index.html#dashboard';
       } catch (error) {
         console.error('[Admin Login] Error validating session from Firestore:', error);
         localStorage.removeItem(STORAGE_KEY_SESSION_ID);
@@ -567,7 +567,7 @@
         
         if (response.ok) {
           console.log('[Admin Login] Token valid, redirecting...');
-          window.location.href = './index.html';
+          window.location.href = './index.html#dashboard';
         } else {
           console.log('[Admin Login] Token invalid');
           localStorage.removeItem(STORAGE_KEY_TOKEN);
