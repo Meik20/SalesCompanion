@@ -229,7 +229,7 @@ window.initFirebaseWhenReady();
 </head>
 <body>
 
-<!-- AUTH - COMPLETELY REDESIGNED LOGIN FORM -->
+<!-- AUTH - CLEAN LOGIN FORM -->
 <div class="auth" id="auth-page">
   <div class="auth-card">
     <div class="auth-logo">
@@ -238,70 +238,22 @@ window.initFirebaseWhenReady();
       <p>Panel Administrateur</p>
     </div>
 
-    <!-- Login Method Selection -->
-    <div id="login-method-select" style="text-align:center;margin-bottom:20px;">
-      <div style="font-size:12px;color:#666;margin-bottom:10px;text-transform:uppercase;font-weight:600;letter-spacing:.05em">Méthode de connexion</div>
-      <div style="display:flex;gap:8px">
-        <button type="button" class="method-btn active" data-method="email" onclick="switchLoginMethod('email')">📧 Email</button>
-        <button type="button" class="method-btn" data-method="phone" onclick="switchLoginMethod('phone')">📱 Téléphone</button>
-      </div>
-    </div>
-
-    <!-- Error Message -->
     <div class="auth-err" id="login-err"></div>
 
-    <!-- Email Login Form -->
-    <form id="email-login-form" onsubmit="handleLoginSubmit(event, 'email')" style="display:block">
+    <form id="login-form" onsubmit="handleLoginSubmit(event)">
       <div class="fg">
-        <label>Adresse email</label>
-        <input type="email" id="login-email" placeholder="admin@company.com" required autocomplete="email">
+        <label>Email</label>
+        <input type="email" id="login-email" placeholder="admin@example.com" required autocomplete="email">
       </div>
       <div class="fg">
         <label>Mot de passe</label>
-        <input type="password" id="login-password" placeholder="••••••••" required autocomplete="current-password">
+        <input type="password" id="login-password" placeholder="••••••••" required autocomplete="current-password" onkeypress="if(event.key==='Enter') handleLoginSubmit(event)">
       </div>
-      <div style="display:flex;align-items:center;gap:8px;font-size:12px;margin:-8px 0 12px;color:#666">
-        <input type="checkbox" id="remember-me">
-        <label for="remember-me" style="margin:0;cursor:pointer">Se souvenir de moi</label>
-      </div>
-      <button type="submit" class="auth-btn" id="login-btn-email">
-        <span id="email-btn-text">Se connecter</span>
-      </button>
+      <button type="submit" class="auth-btn" id="login-btn">Se connecter</button>
     </form>
 
-    <!-- Phone Login Form (Hidden) -->
-    <form id="phone-login-form" onsubmit="handleLoginSubmit(event, 'phone')" style="display:none">
-      <div class="fg">
-        <label>Numéro de téléphone</label>
-        <input type="tel" id="login-phone" placeholder="+33 6 12 34 56 78" required autocomplete="tel">
-        <small style="color:#999;margin-top:4px;display:block">Format: +33 ou 0...</small>
-      </div>
-      <div class="fg">
-        <label>Code de vérification</label>
-        <input type="text" id="verification-code" placeholder="123456" maxlength="6" required>
-        <small style="color:#999;margin-top:4px;display:block">Envoyé par SMS</small>
-      </div>
-      <button type="button" class="auth-btn" onclick="sendPhoneCode()" style="background:#666;margin-bottom:8px">Envoyer le code</button>
-      <button type="submit" class="auth-btn" id="login-btn-phone">
-        <span id="phone-btn-text">Vérifier et se connecter</span>
-      </button>
-    </form>
-
-    <!-- Role Info (shown after successful auth) -->
-    <div id="role-info" style="display:none;background:#f0f2f5;border-radius:8px;padding:12px;margin-top:16px;font-size:12px;text-align:center">
-      <div style="color:#666;margin-bottom:6px">Rôle détecté</div>
-      <div id="detected-role" style="font-weight:700;color:#1B7A3E;font-size:14px">—</div>
-    </div>
-
-    <!-- Firestore Status -->
-    <div id="firestore-status" style="display:none;background:#e8f5ee;border:1px solid #1B7A3E;border-radius:8px;padding:10px;margin-top:12px;font-size:11px;color:#145f2f;line-height:1.5">
-      <div style="font-weight:600;margin-bottom:4px">✅ Authentification Firestore</div>
-      <div>Admin trouvé dans la base de données</div>
-    </div>
-
-    <!-- Password Recovery -->
-    <div style="text-align:center;margin-top:16px">
-      <a href="#" onclick="showPasswordRecovery(event)" style="color:#1B7A3E;text-decoration:none;font-size:12px;font-weight:600">Mot de passe oublié?</a>
+    <div style="text-align:center;margin-top:14px;font-size:12px">
+      <a href="#" onclick="showPasswordRecovery(event)" style="color:#1B7A3E;text-decoration:none;font-weight:600">Mot de passe oublié?</a>
     </div>
   </div>
 </div>
@@ -601,108 +553,56 @@ let currentLoginMethod = 'email';
 let adminCache = {}; // Cache admin users from Firestore
 
 /**
- * Switch between login methods (email/phone)
+ * Handle admin login submission
  */
-function switchLoginMethod(method) {
-  currentLoginMethod = method;
-  
-  // Update buttons
-  document.querySelectorAll('.method-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.method === method);
-  });
-  
-  // Update forms
-  document.getElementById('email-login-form').style.display = method === 'email' ? 'block' : 'none';
-  document.getElementById('phone-login-form').style.display = method === 'phone' ? 'block' : 'none';
-  
-  console.log('[Auth] Login method switched to:', method);
-}
-
-/**
- * Handle login form submission with Firestore role validation
- */
-async function handleLoginSubmit(event, method) {
+async function handleLoginSubmit(event) {
   event.preventDefault();
-  console.log('[Auth] Login attempt via:', method);
   
-  const errEl = document.getElementById('login-err');
-  errEl.classList.remove('show');
-  errEl.textContent = '';
-  errEl.style.display = 'none';
-  
-  try {
-    if (method === 'email') {
-      await handleEmailLogin();
-    } else if (method === 'phone') {
-      await handlePhoneLogin();
-    }
-  } catch (error) {
-    showAuthError(errEl, error.message || 'Erreur de connexion');
-  }
-}
-
-/**
- * Email-based authentication with Firestore role validation
- */
-async function handleEmailLogin() {
   const email = document.getElementById('login-email').value.trim();
   const password = document.getElementById('login-password').value;
-  const btn = document.getElementById('login-btn-email');
-  const btnText = document.getElementById('email-btn-text');
+  const errEl = document.getElementById('login-err');
+  const btn = document.getElementById('login-btn');
   
-  // Validation
+  // Clear error
+  errEl.style.display = 'none';
+  errEl.textContent = '';
+  
+  // Validate input
   if (!email || !password) {
-    throw new Error('Veuillez remplir tous les champs');
+    errEl.textContent = '❌ Veuillez remplir tous les champs';
+    errEl.style.display = 'block';
+    return;
   }
   
-  if (!email.includes('@')) {
-    throw new Error('Adresse email invalide');
-  }
-  
-  if (password.length < 6) {
-    throw new Error('Mot de passe invalide');
-  }
-  
-  // Disable button
   btn.disabled = true;
-  btnText.textContent = 'Vérification...';
+  btn.textContent = 'Connexion...';
   
   try {
     const API = (window.location.origin && window.location.origin !== 'null') 
       ? window.location.origin 
       : 'http://localhost:3000';
     
-    console.log('[Auth] Authenticating via API:', `${API}/admin/login`);
+    console.log('[Admin Auth] Authenticating:', email);
     
-    // Call API with email
     const response = await fetch(`${API}/admin/login`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      credentials: 'omit',
-      body: JSON.stringify({
-        username: email,
-        password: password
-      })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
     });
-    
-    console.log('[Auth] API Response status:', response.status);
     
     if (!response.ok) {
       const data = await response.json();
-      throw new Error(data.error || `Erreur d'authentification (${response.status})`);
+      throw new Error(data.error || `Erreur ${response.status}`);
     }
     
     const data = await response.json();
-    console.log('[Auth] ✅ Authentication successful');
-    console.log('[Auth] Admin role:', data.admin?.role || 'admin');
     
-    // Validate admin role
-    if (data.admin?.role !== 'admin') {
-      throw new Error('Accès refusé. Seuls les administrateurs peuvent accéder.');
+    // Validate role
+    if (data.admin?.role !== 'admin' && data.admin?.role !== 'super-admin') {
+      throw new Error('Accès refusé. Rôle insuffisant.');
     }
+    
+    console.log('[Admin Auth] ✅ Connected as:', data.admin.email);
     
     // Store token
     adminToken = data.token;
@@ -710,60 +610,32 @@ async function handleEmailLogin() {
     localStorage.setItem('admin_token', data.token);
     localStorage.setItem('admin_email', email);
     
-    if (document.getElementById('remember-me').checked) {
-      localStorage.setItem('remember_login', 'true');
+    // Check if password change required
+    if (data.needs_password_change) {
+      console.log('[Admin Auth] First login - password change required');
+      document.getElementById('auth-page').style.display = 'none';
+      document.getElementById('force-password-page').style.display = 'flex';
+    } else {
+      console.log('[Admin Auth] Redirecting to panel');
+      showApp();
     }
     
-    // Show role confirmation
-    document.getElementById('detected-role').textContent = '👤 Administrateur';
-    document.getElementById('firestore-status').style.display = 'block';
-    
-    // Redirect after brief display
-    setTimeout(() => {
-      if (data.needs_password_change) {
-        console.log('[Auth] First login - forcing password change');
-        document.getElementById('auth-page').style.display = 'none';
-        document.getElementById('force-password-page').style.display = 'flex';
-      } else {
-        console.log('[Auth] Redirecting to admin panel');
-        showApp();
-      }
-    }, 800);
-    
+  } catch (error) {
+    console.error('[Admin Auth] Error:', error.message);
+    errEl.textContent = '❌ ' + error.message;
+    errEl.style.display = 'block';
   } finally {
     btn.disabled = false;
-    btnText.textContent = 'Se connecter';
+    btn.textContent = 'Se connecter';
   }
 }
 
 /**
- * Phone-based authentication placeholder
- */
-async function handlePhoneLogin() {
-  throw new Error('Authentification par téléphone : En développement');
-}
-
-/**
- * Send phone verification code
- */
-function sendPhoneCode() {
-  const phone = document.getElementById('login-phone').value.trim();
-  
-  if (!phone) {
-    alert('Veuillez entrer un numéro de téléphone');
-    return;
-  }
-  
-  console.log('[Auth] Sending code to:', phone);
-  alert('Code d\'authentification envoyé par SMS');
-}
-
-/**
- * Show password recovery form
+ * Show password recovery info
  */
 function showPasswordRecovery(event) {
   event.preventDefault();
-  alert('Récupération par email : Contactez votre administrateur système');
+  alert('Contactez votre administrateur système pour réinitialiser votre mot de passe.');
 }
 
 /**

@@ -365,6 +365,53 @@ app.post('/auth/register', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────
+// GET USER PROFILE (for mobile app)
+// ─────────────────────────────────────────────
+app.get('/auth/me', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const token = authHeader.substring(7);
+    let tokenData;
+    try {
+      tokenData = jwt.verify(token, JWT_SECRET);
+    } catch (tokenError) {
+      return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+
+    if (!db) {
+      return res.status(503).json({ error: 'Database not ready' });
+    }
+
+    // Get user from database
+    const userDoc = await db.collection('users').doc(tokenData.id).get();
+    if (!userDoc.exists) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const userData = userDoc.data();
+
+    res.json({
+      id: tokenData.id,
+      email: userData.email,
+      name: userData.name || userData.email.split('@')[0],
+      plan: userData.plan || 'free',
+      company: userData.company || 'N/A',
+      search_count: userData.search_count || 0,
+      remaining: Math.max(0, (userData.search_count < 100 ? 100 - userData.search_count : 0))
+    });
+
+  } catch (e) {
+    console.error('[GET /auth/me] Error:', e.message);
+    res.status(500).json({ error: 'Server error: ' + e.message });
+  }
+});
+
+// ─────────────────────────────────────────────
 // AUTH LOGIN (with auto-tracking)
 // ─────────────────────────────────────────────
 app.post('/admin/login', async (req, res) => {
