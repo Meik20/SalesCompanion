@@ -246,8 +246,8 @@ window.initFirebaseWhenReady();
         <input type="url" id="login-host" placeholder="http://localhost:3000 ou https://votre-serveur.com" required>
       </div>
       <div class="fg">
-        <label>Email</label>
-        <input type="email" id="login-email" placeholder="admin@example.com" required autocomplete="email">
+        <label>Identifiant (username)</label>
+        <input type="text" id="login-email" placeholder="admin" required autocomplete="username">
       </div>
       <div class="fg">
         <label>Mot de passe</label>
@@ -594,7 +594,7 @@ async function handleLoginSubmit(event) {
   event.preventDefault();
   
   const host = document.getElementById('login-host').value.trim();
-  const email = document.getElementById('login-email').value.trim();
+  const username = document.getElementById('login-email').value.trim(); // Username field (reusing email element)
   const password = document.getElementById('login-password').value;
   const errEl = document.getElementById('login-err');
   const btn = document.getElementById('login-btn');
@@ -604,7 +604,7 @@ async function handleLoginSubmit(event) {
   errEl.textContent = '';
   
   // Validate input
-  if (!host || !email || !password) {
+  if (!host || !username || !password) {
     errEl.textContent = '❌ Veuillez remplir tous les champs';
     errEl.style.display = 'block';
     return;
@@ -627,33 +627,34 @@ async function handleLoginSubmit(event) {
   
   try {
     console.log('[Admin Auth] Using server:', host);
-    console.log('[Admin Auth] Authenticating:', email);
+    console.log('[Admin Auth] Authenticating:', username);
     
     const response = await fetch(`${host}/admin/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ username, password })
     });
     
+    console.log('[Admin Auth] Response status:', response.status);
+    
+    const data = await response.json();
+    console.log('[Admin Auth] Response data:', data);
+    
     if (!response.ok) {
-      const data = await response.json();
       throw new Error(data.error || `Erreur ${response.status}`);
     }
     
-    const data = await response.json();
-    
-    // Validate role
-    if (data.admin?.role !== 'admin' && data.admin?.role !== 'super-admin') {
-      throw new Error('Accès refusé. Rôle insuffisant.');
+    if (!data.token) {
+      throw new Error('Pas de token reçu du serveur');
     }
     
-    console.log('[Admin Auth] ✅ Connected as:', data.admin.email);
+    console.log('[Admin Auth] ✅ Connected successfully');
     
     // Store token
     adminToken = data.token;
     authManager.setToken(adminToken);
     localStorage.setItem('admin_token', data.token);
-    localStorage.setItem('admin_email', email);
+    localStorage.setItem('admin_username', username);
     
     // Check if password change required
     if (data.needs_password_change) {
@@ -701,10 +702,10 @@ function showAuthError(element, message) {
  */
 async function checkRememberedLogin() {
   const rememberToken = localStorage.getItem('admin_token');
-  const rememberedEmail = localStorage.getItem('admin_email');
+  const rememberedUsername = localStorage.getItem('admin_username');
   
   if (rememberToken && localStorage.getItem('remember_login') === 'true') {
-    console.log('[Auth] Auto-login detected for:', rememberedEmail);
+    console.log('[Auth] Auto-login detected for:', rememberedUsername);
     authManager.setToken(rememberToken);
     adminToken = rememberToken;
     
@@ -723,10 +724,10 @@ async function checkRememberedLogin() {
 document.addEventListener('DOMContentLoaded', () => {
   console.log('[Auth] Initializing login system with Firestore role validation');
   
-  // Pre-fill email if remembered
-  const rememberedEmail = localStorage.getItem('admin_email');
-  if (rememberedEmail) {
-    document.getElementById('login-email').value = rememberedEmail;
+  // Pre-fill username if remembered
+  const rememberedUsername = localStorage.getItem('admin_username');
+  if (rememberedUsername) {
+    document.getElementById('login-email').value = rememberedUsername;
   }
   
   // Check for auto-login
