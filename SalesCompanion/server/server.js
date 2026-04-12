@@ -318,6 +318,50 @@ if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR);
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
+// ── ADMIN INITIALIZATION (BEFORE static files to ensure it's not intercepted) ──────
+app.post('/admin/init', async (req, res) => {
+  try {
+    console.log('[POST /admin/init] Admin initialization request');
+    
+    // Check if admin already exists
+    const existingAdmin = await getAdminByUsernameFirestore('admin');
+    if (existingAdmin) {
+      return res.status(400).json({ error: 'Admin déjà initialisé. Impossible de réinitialiser.' });
+    }
+    
+    // Create default admin
+    const passwordHash = bcrypt.hashSync('admin123', 10);
+    const adminData = {
+      username: 'admin',
+      password: passwordHash,
+      email: 'admin@salescompanion.local',
+      name: 'Administrator',
+      role: 'admin',
+      first_login: true,
+      created_at: new Date(),
+      updated_at: new Date(),
+      last_login: null,
+      active: true
+    };
+    
+    await db.collection('admins').doc('admin').set(adminData);
+    console.log('[POST /admin/init] ✅ Default admin created');
+    
+    res.json({ 
+      success: true,
+      message: 'Admin par défaut créé avec succès',
+      credentials: {
+        username: 'admin',
+        password: 'admin123',
+        role: 'admin'
+      }
+    });
+  } catch (e) {
+    console.error('[POST /admin/init] Error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── STATIC FILES ────────────────────────────────────────────────
 // Admin panel - disable auto-indexing to prevent serving index.html for /admin/
 // This allows explicit routes below to control routing (login.html vs index.html)
@@ -698,51 +742,7 @@ app.post('/admin/login', async (req, res) => {
   }
 });
 
-// ── ADMIN INITIALIZATION (First time setup) ──────────────────────
-app.post('/admin/init', async (req, res) => {
-  try {
-    console.log('[POST /admin/init] Admin initialization request');
-    
-    // Check if admin already exists
-    const existingAdmin = await getAdminByUsernameFirestore('admin');
-    if (existingAdmin) {
-      return res.status(400).json({ error: 'Admin déjà initialisé. Impossible de réinitialiser.' });
-    }
-    
-    // Create default admin
-    const passwordHash = bcrypt.hashSync('admin123', 10);
-    const adminData = {
-      username: 'admin',
-      password: passwordHash,
-      email: 'admin@salescompanion.local',
-      name: 'Administrator',
-      role: 'admin',
-      first_login: true,
-      created_at: new Date(),
-      updated_at: new Date(),
-      last_login: null,
-      active: true
-    };
-    
-    await db.collection('admins').doc('admin').set(adminData);
-    console.log('[POST /admin/init] ✅ Default admin created');
-    
-    res.json({ 
-      success: true,
-      message: 'Admin par défaut créé avec succès',
-      credentials: {
-        username: 'admin',
-        password: 'admin123',
-        role: 'admin'
-      }
-    });
-  } catch (e) {
-    console.error('[POST /admin/init] Error:', e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// ── ADMIN LOGIN ──────────────────────────────────────────────────
+// ── ADMIN CONFIG ─────────────────────────────────────────────────
 app.get('/admin/config', adminMiddleware, async (req, res) => {
   try {
     console.log('[GET /admin/config] Fetching configuration...');
