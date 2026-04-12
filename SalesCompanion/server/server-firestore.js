@@ -15,6 +15,9 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'sc-secret-2025';
 
+// Valid admin roles
+const VALID_ROLES = ['super-admin', 'admin', 'moderator', 'viewer'];
+
 let db = null;
 let dbInitError = null;
 
@@ -643,6 +646,143 @@ app.get('/api/admin/me', async (req, res) => {
 
   } catch (e) {
     console.error('[GET /api/admin/me] Error:', e.message);
+    res.status(500).json({ error: 'Server error: ' + e.message });
+  }
+});
+
+// ─────────────────────────────────────────────
+// UPDATE ADMIN ROLE (SUPER-ADMIN ONLY)
+// ─────────────────────────────────────────────
+app.put('/api/admin/:adminId/role', async (req, res) => {
+  try {
+    const { adminId } = req.params;
+    const { role } = req.body;
+    const authHeader = req.headers.authorization;
+
+    console.log('[PUT /api/admin/:adminId/role] Updating role for:', adminId, 'to:', role);
+
+    if (!role) {
+      return res.status(400).json({ error: 'Role required' });
+    }
+
+    if (!VALID_ROLES.includes(role)) {
+      return res.status(400).json({ 
+        error: 'Invalid role. Valid roles are: ' + VALID_ROLES.join(', ')
+      });
+    }
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const token = authHeader.substring(7);
+    let tokenData;
+    try {
+      tokenData = jwt.verify(token, JWT_SECRET);
+    } catch (tokenError) {
+      return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+
+    if (tokenData.role !== 'super-admin') {
+      return res.status(403).json({ error: 'Only super-admins can manage roles' });
+    }
+
+    if (!db) {
+      return res.status(503).json({ error: 'Database not ready' });
+    }
+
+    const targetAdminDoc = await db.collection('admin_users').doc(adminId).get();
+    if (!targetAdminDoc.exists) {
+      return res.status(404).json({ error: 'Admin not found' });
+    }
+
+    const targetAdmin = targetAdminDoc.data();
+
+    // Update role
+    await db.collection('admin_users').doc(adminId).update({
+      role: role,
+      role_updated_at: new Date().toISOString(),
+      role_updated_by: tokenData.id
+    });
+
+    console.log('[PUT /api/admin/:adminId/role] Role updated for:', targetAdmin.email, 'to:', role);
+    await logActivity('admin_role_changed', tokenData.id, { 
+      target_admin: targetAdmin.email, 
+      new_role: role,
+      old_role: targetAdmin.role || 'admin'
+    });
+
+    res.json({
+      success: true,
+      admin: {
+        id: adminId,
+        email: targetAdmin.email,
+        name: targetAdmin.name,
+        role: role,
+        role_updated_at: new Date().toISOString()
+      }
+    });
+
+  } catch (e) {
+    console.error('[PUT /api/admin/:adminId/role] Error:', e.message);
+    await logActivity('admin_role_change_error', 'unknown', { error: e.message });
+    res.status(500).json({ error: 'Server error: ' + e.message });
+  }
+});
+
+// ─────────────────────────────────────────────
+// LIST ALL ADMINS (ADMIN ONLY)
+// ─────────────────────────────────────────────
+app.get('/api/admins', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const token = authHeader.substring(7);
+    let tokenData;
+    try {
+      tokenData = jwt.verify(token, JWT_SECRET);
+    } catch (tokenError) {
+      return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+
+    if (tokenData.role !== 'admin' && tokenData.role !== 'super-admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    if (!db) {
+      return res.status(503).json({ error: 'Database not ready' });
+    }
+
+    const adminsSnap = await db.collection('admin_users')
+      .orderBy('created_at', 'desc')
+      .get();
+
+    const admins = adminsSnap.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        email: data.email,
+        name: data.name || data.email.split('@')[0],
+        role: data.role || 'admin',
+        created_at: data.created_at,
+        last_login: data.last_login,
+        status: data.status || 'active'
+      };
+    });
+
+    console.log('[GET /api/admins] Returned', admins.length, 'admins');
+
+    res.json({
+      count: admins.length,
+      admins
+    });
+
+  } catch (e) {
+    console.error('[GET /api/admins] Error:', e.message);
     res.status(500).json({ error: 'Server error: ' + e.message });
   }
 });
