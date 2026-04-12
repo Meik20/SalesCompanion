@@ -195,6 +195,173 @@ app.get('/health', (req, res) => {
 });
 
 // ─────────────────────────────────────────────
+// USER LOGIN (auto-creates Firestore profile if needed)
+// ─────────────────────────────────────────────
+app.post('/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    console.log('[POST /auth/login] Login attempt for user:', email);
+
+    if (!email || !password) {
+      console.log('[POST /auth/login] Missing fields');
+      return res.status(400).json({ error: 'Email and password required' });
+    }
+
+    if (!db) {
+      console.log('[POST /auth/login] Database not initialized');
+      return res.status(503).json({ error: 'Database not ready' });
+    }
+
+    // Check if user exists in Firestore
+    const snap = await db.collection('users')
+      .where('email', '==', email)
+      .limit(1)
+      .get();
+
+    console.log('[POST /auth/login] Query result:', snap.empty ? 'Not found' : 'Found');
+
+    if (snap.empty) {
+      console.log('[POST /auth/login] User not found:', email);
+      // Log failed attempt
+      await logActivity('user_login_failed', 'unknown', { email, reason: 'not_found' });
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    const user = snap.docs[0].data();
+    const userId = snap.docs[0].id;
+
+    console.log('[POST /auth/login] Verifying password...');
+
+    const ok = await bcrypt.compare(password, user.password_hash);
+
+    if (!ok) {
+      console.log('[POST /auth/login] Invalid password');
+      // Log failed attempt
+      await logActivity('user_login_failed', userId, { email, reason: 'wrong_password' });
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    console.log('[POST /auth/login] Authentication successful');
+
+    // Update last login
+    await db.collection('users').doc(userId).update({
+      last_login: new Date().toISOString()
+    });
+
+    const token = jwt.sign(
+      { id: userId, email: user.email, role: 'user' },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    // Log successful login
+    await logActivity('user_login_success', userId, { email });
+
+    res.json({
+      token,
+      user: {
+        id: userId,
+        email: user.email,
+        name: user.name || user.email.split('@')[0],
+        plan: user.plan || 'free',
+        company: user.company || 'N/A'
+      }
+    });
+
+  } catch (e) {
+    console.error('[POST /auth/login] Error:', e.message);
+    console.error(e.stack);
+    await logActivity('user_login_error', 'unknown', { error: e.message });
+    res.status(500).json({ error: 'Server error: ' + e.message });
+  }
+});
+
+// ─────────────────────────────────────────────
+// USER REGISTER (creates Firestore profile)
+// ─────────────────────────────────────────────
+app.post('/auth/register', async (req, res) => {
+  try {
+    const { name, email, password, company = 'N/A', plan = 'free' } = req.body;
+
+    console.log('[POST /auth/register] Registration attempt for user:', email);
+
+    if (!email || !password || !name) {
+      console.log('[POST /auth/register] Missing required fields');
+      return res.status(400).json({ error: 'Name, email, and password required' });
+    }
+
+    if (password.length < 6) {
+      console.log('[POST /auth/register] Password too short');
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+
+    if (!db) {
+      console.log('[POST /auth/register] Database not initialized');
+      return res.status(503).json({ error: 'Database not ready' });
+    }
+
+    // Check if user already exists
+    const existingSnap = await db.collection('users')
+      .where('email', '==', email)
+      .limit(1)
+      .get();
+
+    if (!existingSnap.empty) {
+      console.log('[POST /auth/register] User already exists:', email);
+      return res.status(409).json({ error: 'Email already registered' });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create new user in Firestore
+    const userRef = await db.collection('users').add({
+      email,
+      name,
+      company,
+      password_hash: hashedPassword,
+      plan,
+      status: 'active',
+      created_at: new Date().toISOString(),
+      last_login: new Date().toISOString(),
+      search_count: 0
+    });
+
+    const userId = userRef.id;
+
+    console.log('[POST /auth/register] User registered:', email, '(', userId, ')');
+
+    // Auto-log activity
+    await logActivity('user_registered', userId, { email, name, company, plan });
+
+    // Generate token
+    const token = jwt.sign(
+      { id: userId, email, role: 'user' },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.status(201).json({
+      token,
+      user: {
+        id: userId,
+        email,
+        name,
+        plan,
+        company
+      }
+    });
+
+  } catch (e) {
+    console.error('[POST /auth/register] Error:', e.message);
+    console.error(e.stack);
+    await logActivity('user_register_error', 'unknown', { error: e.message });
+    res.status(500).json({ error: 'Server error: ' + e.message });
+  }
+});
+
+// ─────────────────────────────────────────────
 // AUTH LOGIN (with auto-tracking)
 // ─────────────────────────────────────────────
 app.post('/admin/login', async (req, res) => {
