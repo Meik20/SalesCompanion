@@ -517,15 +517,80 @@ const PLAN_INFO={free:{label:'Gratuit',badge:'b-free',icon:'🆓'},starter:{labe
 // ====================================
 // AUTHENTICATION CHECK - MUST HAPPEN IMMEDIATELY
 // ====================================
-(function() {
-  // Check authentication early
+(async function() {
+  // First check: Token exists in localStorage
   if (!authManager.isAuthenticated()) {
     console.log('[Dashboard] ❌ Not authenticated - redirecting to login');
     window.location.href = './login.html';
     return;
   }
   
-  console.log('[Dashboard] ✅ Token valid - showing dashboard');
+  console.log('[Dashboard] ℹ️ Token found - validating with Firebase/Firestore...');
+  
+  // Second check: Wait for Firebase to be ready
+  try {
+    await window.waitForFirebase(10000);
+    
+    if (!firebase.apps.length) {
+      firebase.initializeApp(window.firebaseConfig);
+    }
+  } catch (error) {
+    console.warn('[Dashboard] ⚠️ Firebase CDN failed, continuing with localStorage fallback');
+  }
+  
+  // Third check: Validate session in Firestore
+  const sessionId = localStorage.getItem('sc_admin_session_id');
+  
+  if (sessionId && firebase.apps && firebase.apps.length > 0) {
+    try {
+      const db = firebase.firestore();
+      const sessionDoc = await db.collection('admin_sessions').doc(sessionId).get();
+      
+      if (!sessionDoc.exists) {
+        console.log('[Dashboard] ❌ Session not found in Firestore - logging out');
+        logout();
+        return;
+      }
+      
+      const sessionData = sessionDoc.data();
+      
+      // Check if session is marked inactive
+      if (!sessionData.isActive) {
+        console.log('[Dashboard] ❌ Session marked as inactive - logging out');
+        logout();
+        return;
+      }
+      
+      // Check expiration
+      const expiresAt = sessionData.expiresAt?.toDate?.() || new Date(sessionData.expiresAt);
+      if (new Date() > expiresAt) {
+        console.log('[Dashboard] ❌ Session expired - logging out');
+        await db.collection('admin_sessions').doc(sessionId).update({
+          isActive: false,
+          expiredAt: new Date()
+        });
+        logout();
+        return;
+      }
+      
+      // Update last seen
+      await db.collection('admin_sessions').doc(sessionId).update({
+        lastSeen: new Date()
+      });
+      
+      console.log('[Dashboard] ✅ Session valid in Firestore - showing dashboard');
+      showApp();
+      
+    } catch (error) {
+      console.error('[Dashboard] ❌ Error validating session in Firestore:', error);
+      logout();
+      return;
+    }
+  } else {
+    // No Firestore but token exists - use token+localStorage fallback
+    console.log('[Dashboard] ⚠️ No Firestore session ID - using localStorage fallback');
+    showApp();
+  }
 })();
 
 // ====================================================
