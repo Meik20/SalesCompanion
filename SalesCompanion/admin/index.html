@@ -646,6 +646,62 @@ async function validateAdminSessionFromFirestore() {
   }
 }
 
+// ====================================================
+// ACTIVITY LOGGING TO FIRESTORE
+// ====================================================
+async function logAdminActivity(action, details = {}) {
+  try {
+    const username = localStorage.getItem('sc_admin_username') || 'unknown';
+    const sessionId = localStorage.getItem('sc_admin_session_id');
+    
+    // Only log if Firebase is available
+    if (!firebase.apps || firebase.apps.length === 0) {
+      console.log('[Activity] Firebase not ready, skipping activity log');
+      return;
+    }
+
+    const db = firebase.firestore();
+    const activityLog = {
+      action,                          // e.g., 'import', 'export', 'delete', 'update'
+      username,                        // Admin who performed action
+      sessionId: sessionId || 'unknown',
+      timestamp: new Date(),
+      details: {
+        ...details,
+        userAgent: navigator.userAgent.substring(0, 200)
+      },
+      status: 'completed'
+    };
+
+    // Store in activity_logs collection
+    await db.collection('activity_logs').add(activityLog);
+    console.log('[Activity] ✅ Logged:', action, 'by', username);
+    
+  } catch (error) {
+    console.warn('[Activity] Could not log activity (non-fatal):', error.message);
+    // Don't throw - activity logging is secondary
+  }
+}
+
+// Update lastSeen whenever user performs actions
+document.addEventListener('click', async (e) => {
+  try {
+    const sessionId = localStorage.getItem('sc_admin_session_id');
+    if (sessionId && firebase.apps && firebase.apps.length > 0) {
+      const db = firebase.firestore();
+      // Update lastSeen every 30 seconds max (debounced)
+      if (!window.lastActivityUpdate || Date.now() - window.lastActivityUpdate > 30000) {
+        db.collection('admin_sessions').doc(sessionId).update({
+          lastSeen: new Date()
+        }).catch(err => console.log('Could not update lastSeen'));
+        window.lastActivityUpdate = Date.now();
+      }
+    }
+  } catch (e) {
+    // Silently fail - not critical
+  }
+}, true); // Use capture phase for all clicks
+
 // VÉRIFICATION SYNCHRONE AU CHARGEMENT - PAS DE FLASH
 if(authManager.isAuthenticated()) {
   showApp();
@@ -1197,12 +1253,31 @@ async function processFile(file){
       +(cols?'<div style="margin-top:10px;font-size:12px"><strong>Colonnes mappées :</strong><ul style="padding-left:16px;margin-top:4px">'+cols+'</ul></div>':'');
     rb.style.display='block';
     toast('✅ '+d.imported+' entreprises importées');
+    
+    // Log import activity
+    await logAdminActivity('import_companies', {
+      filename: file.name,
+      fileSize: file.size,
+      total: d.total,
+      imported: d.imported,
+      updated: d.updated || 0,
+      skipped: d.skipped,
+      errors: d.errors,
+      columnsDetected: Object.keys(d.columns_detected || {}).length
+    });
+    
     loadImportLogs();loadDashboard();
   }catch(e){
     document.getElementById('progress-wrap').style.display='none';
     rb.className='result-box err';
     rb.innerHTML='<strong>❌ Impossible de joindre le serveur</strong><br>'+e.message+'<br><span style="font-size:12px">Vérifiez que le serveur est démarré.</span>';
     rb.style.display='block';
+    
+    // Log import error
+    await logAdminActivity('import_companies_error', {
+      filename: file.name,
+      error: e.message
+    });
   }
   document.getElementById('file-input').value='';
 }
@@ -1322,7 +1397,18 @@ async function exportCompanies(){
     a.remove();
     URL.revokeObjectURL(url);
     toast('✅ Export lancé');
-  }catch(e){toast('Erreur export : '+e.message);} 
+    
+    // Log activity
+    await logAdminActivity('export_companies', {
+      query: q || 'all',
+      region: region || 'all',
+      secteur: secteur || 'all',
+      fileSize: blob.size
+    });
+  }catch(e){
+    toast('Erreur export : '+e.message);
+    await logAdminActivity('export_companies_error', { error: e.message });
+  } 
 }
 
 async function exportCompaniesToRailway(){
@@ -1334,9 +1420,25 @@ async function exportCompaniesToRailway(){
     if(secteur) params.set('secteur', secteur);
     const r = await fetch(`${API}/admin/companies/export-railway?${params}`, {method:'POST',headers:H()});
     const d = await r.json();
-    if(!r.ok) return toast('❌ '+(d.error||'Erreur export Railway'));
+    if(!r.ok) {
+      toast('❌ '+(d.error||'Erreur export Railway'));
+      await logAdminActivity('export_railway_failed', { error: d.error });
+      return;
+    }
     toast(`✅ Export vers Railway réussi (${d.imported||0} importées, ${d.updated||0} mises à jour)`);
-  }catch(e){toast('Erreur export Railway : '+e.message);} 
+    
+    // Log successful export
+    await logAdminActivity('export_railway', {
+      imported: d.imported || 0,
+      updated: d.updated || 0,
+      query: q || 'all',
+      region: region || 'all',
+      secteur: secteur || 'all'
+    });
+  }catch(e){
+    toast('Erreur export Railway : '+e.message);
+    await logAdminActivity('export_railway_error', { error: e.message });
+  } 
 }
 
 // ── USERS ──────────────────────────────────────────────────────
@@ -1374,11 +1476,25 @@ async function deleteAllCompanies(){
     console.log('[deleteAllCompanies] Response status:', r.status);
     const d=await r.json();
     console.log('[deleteAllCompanies] Response data:', d);
-    if(r.ok){toast('✅ Base vidée — '+d.deleted+' entreprises supprimées');loadCompanies(1);loadDashboard();}
-    else toast('❌ '+(d.error||'Opération échouée'));
+    if(r.ok){
+      toast('✅ Base vidée — '+d.deleted+' entreprises supprimées');
+      
+      // Log this critical action
+      await logAdminActivity('delete_all_companies', {
+        companiesDeleted: d.deleted,
+        confirmation: 'SUPPRIMER'
+      });
+      
+      loadCompanies(1);loadDashboard();
+    }
+    else {
+      toast('❌ '+(d.error||'Opération échouée'));
+      await logAdminActivity('delete_all_companies_failed', { error: d.error });
+    }
   }catch(e){
     console.error('[deleteAllCompanies] Error:', e);
     toast('Erreur: '+e.message);
+    await logAdminActivity('delete_all_companies_error', { error: e.message });
   }
 }
 
