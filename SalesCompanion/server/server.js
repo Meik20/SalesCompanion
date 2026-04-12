@@ -19,14 +19,11 @@ const os = require('os');
 const { getFirestore, initFirestore, isFirestoreReady } = require('./firestore-config');
 const firestoreHelpers = require('./firestore-helpers');
 
-// Initialize Firestore on startup
-(async () => {
-  await initFirestore();
-})();
+// Do NOT initialize here - wait until start() function
 
 // ── FIRESTORE DATABASE FUNCTIONS ────────────────────────────────
 // These replace the old PostgreSQL dbQuery functions
-const db = getFirestore();
+let db = null;
 
 async function getConfigFirestore(key) {
   if (!db) return null;
@@ -1181,14 +1178,18 @@ app.use((err, req, res, next) => {
 // ── START SERVER ─────────────────────────────────────────────────
 async function start() {
   try {
+    // CRITICAL: Initialize Firestore FIRST, before any routes can be called
     console.log('🔄 Initializing Firestore...');
+    await initFirestore();  // Wait for it to complete
+    db = getFirestore();    // Now get the initialized instance
     
-    if (isFirestoreReady()) {
+    if (db) {
       console.log('✅ Firestore initialized successfully');
     } else {
-      console.warn('⚠️  Firestore not fully initialized');
+      throw new Error('Firestore initialization failed - db is null');
     }
     
+    // NOW start the Express server (after Firestore is ready)
     app.listen(PORT, () => {
       console.log('\n🚀 Sales Companion Server v2.0 (Firestore)');
       console.log(`   Panel Admin  : http://localhost:${PORT}/admin`);
