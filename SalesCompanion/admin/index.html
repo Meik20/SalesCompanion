@@ -1157,8 +1157,6 @@ async function loadDashboard(){
 }
 
 function renderDashboard(d) {
-  document.getElementById('s-users').textContent=d.totalUsers || 0;
-function renderDashboard(d) {
   console.log('[Dashboard] Rendering with data:', d);
   document.getElementById('s-cos').textContent=(d.totalCompanies || 0).toLocaleString();
   document.getElementById('s-today').textContent=d.activeToday || 0;
