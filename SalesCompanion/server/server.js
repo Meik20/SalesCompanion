@@ -317,7 +317,21 @@ if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR);
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
+
+// ── STATIC FILES ────────────────────────────────────────────────
+// Admin panel
+app.use('/admin', express.static(path.join(__dirname, '..', 'admin')));
+// Mobile PWA
 app.use('/mobile', express.static(path.join(__dirname, '..', 'mobile')));
+
+// ── HTML ENTRY POINTS ──────────────────────────────────────────
+// Admin entry point - serve login.html for /admin/
+app.get('/admin/', (req, res) => res.sendFile(path.join(__dirname, '..', 'admin', 'login.html')));
+// Admin login page - explicit route
+app.get('/admin/login.html', (req, res) => res.sendFile(path.join(__dirname, '..', 'admin', 'login.html')));
+// Admin dashboard - explicit route
+app.get('/admin/index.html', (req, res) => res.sendFile(path.join(__dirname, '..', 'admin', 'index.html')));
+// Mobile entry point
 app.get('/mobile', (req, res) => res.sendFile(path.join(__dirname, '..', 'mobile', 'index.html')));
 
 // ── DOWNLOADS ──────────────────────────────────────────────────
@@ -1035,6 +1049,12 @@ app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, '..', 'admin',
 app.use((err, req, res, next) => {
   console.error('[Erreur serveur]', err.message);
   res.status(500).json({ error: err.message || 'Erreur interne du serveur' });
+});
+
+// ── FALLBACK ROUTES FOR ADMIN ─────────────────────────────────
+// Catch any unhandled /admin/* requests and serve login.html
+app.get('/admin/*', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'admin', 'login.html'));
 });
 
 // ── START SERVER ─────────────────────────────────────────────────
