@@ -659,13 +659,31 @@ document.addEventListener('DOMContentLoaded', async () => {
   const url = localStorage.getItem('sc_server') || SERVER_URL;
   localStorage.setItem('sc_server', url);
   document.getElementById('server-url').value = url;
+  
+  // Try to restore session from token
   if (token) {
     try {
+      console.log('[Init] Attempting to restore session with existing token...');
       const r = await api('GET', '/auth/me', null, token);
-      if (r.ok) { user = await r.json(); showApp(); }
-      else { localStorage.removeItem('sc_token'); token = ''; }
-    } catch { }
+      if (r.ok) { 
+        user = await r.json(); 
+        console.log('[Init] ✅ Session restored for:', user.email);
+        showApp(); 
+      }
+      else { 
+        console.log('[Init] Token invalid, clearing...');
+        localStorage.removeItem('sc_token'); 
+        token = ''; 
+      }
+    } catch (e) {
+      console.error('[Init] Session restore failed:', e.message);
+      localStorage.removeItem('sc_token');
+      token = '';
+    }
+  } else {
+    console.log('[Init] No existing token found');
   }
+  
   updateCities();
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 });
@@ -686,6 +704,9 @@ function switchTab(t) {
   document.querySelectorAll('.auth-tab').forEach((el, i) => el.classList.toggle('active', (i === 0 && t === 'login') || (i === 1 && t === 'register')));
   document.getElementById('login-form').style.display = t === 'login' ? '' : 'none';
   document.getElementById('register-form').style.display = t === 'register' ? '' : 'none';
+  // Clear error messages when switching tabs
+  document.getElementById('l-err').style.display = 'none';
+  document.getElementById('r-err').style.display = 'none';
 }
 async function doLogin() {
   const btn = document.getElementById('l-btn'); 
@@ -733,6 +754,12 @@ async function doLogin() {
           }
         }
         
+        // Clear form fields
+        document.getElementById('l-email').value = '';
+        document.getElementById('l-pass').value = '';
+        document.getElementById('l-err').textContent = '';
+        document.getElementById('l-err').style.display = 'none';
+        
         showApp();
         btn.disabled = false; 
         btn.textContent = 'Se connecter →';
@@ -777,6 +804,10 @@ async function doLogin() {
     }
     
     console.log('[Auth] ✅ API authentication SUCCESSFUL + Firestore profile created');
+    // Clear form fields
+    document.getElementById('l-email').value = '';
+    document.getElementById('l-pass').value = '';
+    err.textContent = '';
     showApp();
   } catch (e) {
     const errorMap = { 
@@ -871,6 +902,12 @@ async function doRegister() {
       }
       
       console.log('[Auth] ✅ REGISTRATION COMPLETE: Firebase Auth ✓ + Firestore Profile ✓');
+      // Clear form fields
+      document.getElementById('r-name').value = '';
+      document.getElementById('r-email').value = '';
+      document.getElementById('r-pass').value = '';
+      document.getElementById('r-err').textContent = '';
+      document.getElementById('r-err').style.display = 'none';
       showApp();
       btn.disabled = false; 
       btn.textContent = 'Créer mon compte →';
@@ -901,6 +938,23 @@ async function doRegister() {
   btn.textContent = 'Créer mon compte →';
 }
 function showApp() {
+  // Clean up form fields and error messages
+  document.getElementById('l-email').value = '';
+  document.getElementById('l-pass').value = '';
+  document.getElementById('r-name').value = '';
+  document.getElementById('r-email').value = '';
+  document.getElementById('r-pass').value = '';
+  document.getElementById('l-err').style.display = 'none';
+  document.getElementById('r-err').style.display = 'none';
+  document.getElementById('l-err').textContent = '';
+  document.getElementById('r-err').textContent = '';
+  
+  // Reset form tabs to login
+  document.querySelectorAll('.auth-tab').forEach((el, i) => el.classList.toggle('active', i === 0));
+  document.getElementById('login-form').style.display = '';
+  document.getElementById('register-form').style.display = 'none';
+  
+  // Show app views
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('topbar').style.display = 'flex';
   document.getElementById('content').style.display = 'flex';
@@ -949,6 +1003,22 @@ async function doLogout() {
   token = ''; 
   user = null;
   console.log('[Auth] Session cleared');
+  
+  // Clean up form fields
+  document.getElementById('l-email').value = '';
+  document.getElementById('l-pass').value = '';
+  document.getElementById('r-name').value = '';
+  document.getElementById('r-email').value = '';
+  document.getElementById('r-pass').value = '';
+  document.getElementById('l-err').style.display = 'none';
+  document.getElementById('r-err').style.display = 'none';
+  document.getElementById('l-err').textContent = '';
+  document.getElementById('r-err').textContent = '';
+  
+  // Reset to login tab
+  document.querySelectorAll('.auth-tab').forEach((el, i) => el.classList.toggle('active', i === 0));
+  document.getElementById('login-form').style.display = '';
+  document.getElementById('register-form').style.display = 'none';
   
   document.getElementById('topbar').style.display = 'none';
   document.getElementById('content').style.display = 'none';
