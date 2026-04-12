@@ -242,6 +242,10 @@ window.initFirebaseWhenReady();
 
     <form id="login-form" onsubmit="handleLoginSubmit(event)">
       <div class="fg">
+        <label>Serveur (URL)</label>
+        <input type="url" id="login-host" placeholder="http://localhost:3000 ou https://votre-serveur.com" required>
+      </div>
+      <div class="fg">
         <label>Email</label>
         <input type="email" id="login-email" placeholder="admin@example.com" required autocomplete="email">
       </div>
@@ -511,8 +515,39 @@ window.initFirebaseWhenReady();
 <div class="toast" id="toast"></div>
 
 <script>
-const API = (window.location.origin && window.location.origin !== 'null') ? window.location.origin : 'http://localhost:3000';
-console.log('[API] origin', API);
+// ============================================
+// SERVER CONFIGURATION
+// ============================================
+function getServerHost() {
+  const stored = localStorage.getItem('sc_admin_host');
+  if (stored && stored !== 'null' && stored !== 'undefined') return stored;
+  
+  // Fallback to window origin
+  if (window.location.origin && window.location.origin !== 'null') {
+    return window.location.origin;
+  }
+  return 'http://localhost:3000';
+}
+
+function setServerHost(host) {
+  const trimmed = (host || '').trim();
+  if (trimmed) {
+    localStorage.setItem('sc_admin_host', trimmed);
+    // Update global API variable
+    globalThis.API = trimmed;
+  }
+}
+
+let API = getServerHost();
+console.log('[API] Server host:', API);
+
+// Initialize host field on page load
+document.addEventListener('DOMContentLoaded', () => {
+  const hostField = document.getElementById('login-host');
+  if (hostField) {
+    hostField.value = localStorage.getItem('sc_admin_host') || 'http://localhost:3000';
+  }
+});
 
 // Auth Manager
 class AuthManager {
@@ -558,6 +593,7 @@ let adminCache = {}; // Cache admin users from Firestore
 async function handleLoginSubmit(event) {
   event.preventDefault();
   
+  const host = document.getElementById('login-host').value.trim();
   const email = document.getElementById('login-email').value.trim();
   const password = document.getElementById('login-password').value;
   const errEl = document.getElementById('login-err');
@@ -568,23 +604,32 @@ async function handleLoginSubmit(event) {
   errEl.textContent = '';
   
   // Validate input
-  if (!email || !password) {
+  if (!host || !email || !password) {
     errEl.textContent = '❌ Veuillez remplir tous les champs';
     errEl.style.display = 'block';
     return;
   }
   
+  // Validate URL format
+  try {
+    new URL(host);
+  } catch (e) {
+    errEl.textContent = '❌ URL du serveur invalide (ex: http://localhost:3000)';
+    errEl.style.display = 'block';
+    return;
+  }
+  
+  // Save host in localStorage
+  setServerHost(host);
+  
   btn.disabled = true;
   btn.textContent = 'Connexion...';
   
   try {
-    const API = (window.location.origin && window.location.origin !== 'null') 
-      ? window.location.origin 
-      : 'http://localhost:3000';
-    
+    console.log('[Admin Auth] Using server:', host);
     console.log('[Admin Auth] Authenticating:', email);
     
-    const response = await fetch(`${API}/admin/login`, {
+    const response = await fetch(`${host}/admin/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })
@@ -736,9 +781,7 @@ async function doForceChangePassword(){
   btn.textContent = 'Mise à jour...';
   
   try {
-    const API = (window.location.origin && window.location.origin !== 'null') 
-      ? window.location.origin 
-      : 'http://localhost:3000';
+    const API = getServerHost();
     
     console.log('[Auth] Changing password...');
     
