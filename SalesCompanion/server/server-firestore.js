@@ -279,6 +279,208 @@ app.post('/admin/login', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────
+// CHANGE ADMIN PASSWORD
+// ─────────────────────────────────────────────
+app.post('/admin/change-password', async (req, res) => {
+  try {
+    const { new_password } = req.body;
+    const authHeader = req.headers.authorization;
+
+    console.log('[POST /admin/change-password] Request received');
+
+    // Validate input
+    if (!new_password) {
+      console.log('[POST /admin/change-password] Missing new password');
+      return res.status(400).json({ error: 'New password required' });
+    }
+
+    if (new_password.length < 6) {
+      console.log('[POST /admin/change-password] Password too short');
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.log('[POST /admin/change-password] No token provided');
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    // Extract and verify token
+    const token = authHeader.substring(7);
+    let tokenData;
+    try {
+      tokenData = jwt.verify(token, JWT_SECRET);
+      console.log('[POST /admin/change-password] Token verified for admin:', tokenData.id);
+    } catch (tokenError) {
+      console.log('[POST /admin/change-password] Invalid token:', tokenError.message);
+      return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+
+    if (!db) {
+      console.log('[POST /admin/change-password] Database not ready');
+      return res.status(503).json({ error: 'Database not ready' });
+    }
+
+    // Get admin from database
+    const adminDoc = await db.collection('admin_users').doc(tokenData.id).get();
+    if (!adminDoc.exists) {
+      console.log('[POST /admin/change-password] Admin not found:', tokenData.id);
+      return res.status(404).json({ error: 'Admin not found' });
+    }
+
+    const admin = adminDoc.data();
+    console.log('[POST /admin/change-password] Found admin:', admin.email);
+
+    // Hash and update password
+    const hashedPassword = await bcrypt.hash(new_password, 10);
+    await db.collection('admin_users').doc(tokenData.id).update({
+      password_hash: hashedPassword,
+      first_login: false,
+      last_password_change: new Date().toISOString()
+    });
+
+    console.log('[POST /admin/change-password] Password updated successfully for:', admin.email);
+    
+    // Log this action
+    await logActivity('admin_password_changed', tokenData.id, { email: admin.email });
+
+    res.json({
+      success: true,
+      message: 'Password updated successfully',
+      admin: { id: tokenData.id, email: admin.email }
+    });
+
+  } catch (e) {
+    console.error('[POST /admin/change-password] Error:', e.message);
+    console.error(e.stack);
+    await logActivity('admin_password_change_error', 'unknown', { error: e.message });
+    res.status(500).json({ error: 'Server error: ' + e.message });
+  }
+});
+
+// ─────────────────────────────────────────────
+// CREATE NEW ADMIN (AUTHENTICATED ADMIN ONLY)
+// ─────────────────────────────────────────────
+app.post('/api/admin/create', async (req, res) => {
+  try {
+    const { email, password, name, role } = req.body;
+    const authHeader = req.headers.authorization;
+
+    console.log('[POST /api/admin/create] Creating new admin:', email);
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password required' });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const token = authHeader.substring(7);
+    let tokenData;
+    try {
+      tokenData = jwt.verify(token, JWT_SECRET);
+    } catch (tokenError) {
+      return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+
+    if (tokenData.role !== 'admin') {
+      return res.status(403).json({ error: 'Only admins can create other admins' });
+    }
+
+    if (!db) {
+      return res.status(503).json({ error: 'Database not ready' });
+    }
+
+    const existingSnap = await db.collection('admin_users')
+      .where('email', '==', email.toLowerCase())
+      .limit(1)
+      .get();
+
+    if (!existingSnap.empty) {
+      return res.status(409).json({ error: 'Admin already exists' });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newAdminRef = await db.collection('admin_users').add({
+      email: email.toLowerCase(),
+      password_hash: hashedPassword,
+      name: name || email.split('@')[0],
+      role: role || 'admin',
+      first_login: true,
+      created_by: tokenData.id,
+      created_at: new Date().toISOString()
+    });
+
+    console.log('[POST /api/admin/create] New admin created:', email);
+    await logActivity('admin_created', tokenData.id, { new_admin_email: email, role });
+
+    res.status(201).json({
+      success: true,
+      admin: {
+        id: newAdminRef.id,
+        email: email.toLowerCase(),
+        name: name || email.split('@')[0],
+        role: role || 'admin'
+      }
+    });
+
+  } catch (e) {
+    console.error('[POST /api/admin/create] Error:', e.message);
+    await logActivity('admin_creation_error', 'unknown', { error: e.message });
+    res.status(500).json({ error: 'Server error: ' + e.message });
+  }
+});
+
+// ─────────────────────────────────────────────
+// GET CURRENT ADMIN  INFO
+// ─────────────────────────────────────────────
+app.get('/api/admin/me', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const token = authHeader.substring(7);
+    let tokenData;
+    try {
+      tokenData = jwt.verify(token, JWT_SECRET);
+    } catch (tokenError) {
+      return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+
+    if (!db) {
+      return res.status(503).json({ error: 'Database not ready' });
+    }
+
+    const adminDoc = await db.collection('admin_users').doc(tokenData.id).get();
+    if (!adminDoc.exists) {
+      return res.status(404).json({ error: 'Admin not found' });
+    }
+
+    const admin = adminDoc.data();
+
+    res.json({
+      id: tokenData.id,
+      email: admin.email,
+      name: admin.name || admin.email.split('@')[0],
+      role: admin.role || 'admin',
+      last_login: admin.last_login,
+      created_at: admin.created_at
+    });
+
+  } catch (e) {
+    console.error('[GET /api/admin/me] Error:', e.message);
+    res.status(500).json({ error: 'Server error: ' + e.message });
+  }
+});
+
+// ─────────────────────────────────────────────
 // REGISTER
 // ─────────────────────────────────────────────
 app.post('/admin/register', async (req, res) => {

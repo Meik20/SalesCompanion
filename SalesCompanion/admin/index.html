@@ -627,6 +627,8 @@ async function handleLoginSubmit(event, method) {
   
   const errEl = document.getElementById('login-err');
   errEl.classList.remove('show');
+  errEl.textContent = '';
+  errEl.style.display = 'none';
   
   try {
     if (method === 'email') {
@@ -848,6 +850,69 @@ async function doForceChangePassword(){
   if (pass1 !== pass2) {
     err.textContent = '❌ Les mots de passe ne correspondent pas';
     err.style.display = 'block';
+    return;
+  }
+  
+  if (pass1 === 'admin123') {
+    err.textContent = '❌ Choisissez un mot de passe différent du mot de passe par défaut';
+    err.style.display = 'block';
+    return;
+  }
+  
+  // Disable button
+  btn.disabled = true;
+  btn.textContent = 'Mise à jour...';
+  
+  try {
+    const API = (window.location.origin && window.location.origin !== 'null') 
+      ? window.location.origin 
+      : 'http://localhost:3000';
+    
+    console.log('[Auth] Changing password...');
+    
+    // Call API with new password
+    const response = await fetch(`${API}/admin/change-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${adminToken}`
+      },
+      credentials: 'omit',
+      body: JSON.stringify({
+        new_password: pass1
+      })
+    });
+    
+    console.log('[Auth] Response status:', response.status);
+    
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.error || `Erreur ${response.status}`);
+    }
+    
+    const data = await response.json();
+    console.log('[Auth] ✅ Password changed successfully');
+    
+    // Success - redirect to admin panel
+    err.textContent = '✅ Mot de passe mis à jour ! Redirection...';
+    err.style.color = '#27ae60';
+    err.style.display = 'block';
+    
+    setTimeout(() => {
+      document.getElementById('force-password-page').style.display = 'none';
+      showApp();
+    }, 1500);
+    
+  } catch (error) {
+    console.error('[Auth] Password change error:', error);
+    err.textContent = '❌ ' + (error.message || 'Erreur lors du changement de mot de passe');
+    err.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Mettre à jour le mot de passe';
+  }
+}
     return;
   }
   
