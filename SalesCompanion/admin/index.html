@@ -230,8 +230,9 @@ window.initFirebaseWhenReady();
 <body>
 
 <!-- APP -->
-<div class="app" id="app" style="display: flex;">
+<div class="app" id="app">
   <!-- Note: Authentication is handled by login.html. This is the dashboard only. -->
+  <!-- Will be shown only if authenticated -->
   <div class="sidebar">
     <div class="sb-brand">
       <div class="name">SALES <em>COMPANION</em></div>
@@ -490,26 +491,6 @@ function setServerHost(host) {
 let API = getServerHost();
 console.log('[API] Server host:', API);
 
-// Initialize host field and form on page load
-document.addEventListener('DOMContentLoaded', () => {
-  console.log('[Auth] Initializing login form');
-  
-  // Set host field with production URL as default
-  const hostField = document.getElementById('login-host');
-  if (hostField) {
-    hostField.value = localStorage.getItem('sc_admin_host') || 'https://salescompanion-production-a34d.up.railway.app';
-  }
-  
-  // Keep username field empty (don't pre-fill for security)
-  const usernameField = document.getElementById('login-email');
-  if (usernameField) {
-    usernameField.value = '';
-  }
-  
-  // Check for auto-login
-  checkRememberedLogin();
-});
-
 // Auth Manager
 class AuthManager {
   constructor() {
@@ -532,6 +513,20 @@ const authManager = new AuthManager();
 let adminToken = authManager.getToken();
 let allUsers=[],coPage=1,coSearchTimer=null;
 const PLAN_INFO={free:{label:'Gratuit',badge:'b-free',icon:'🆓'},starter:{label:'Starter',badge:'b-starter',icon:'🚀'},pro:{label:'Pro',badge:'b-pro',icon:'⭐'},enterprise:{label:'Entreprise',badge:'b-enterprise',icon:'🏢'}};
+
+// ====================================
+// AUTHENTICATION CHECK - MUST HAPPEN IMMEDIATELY
+// ====================================
+(function() {
+  // Check authentication early
+  if (!authManager.isAuthenticated()) {
+    console.log('[Dashboard] ❌ Not authenticated - redirecting to login');
+    window.location.href = './login.html';
+    return;
+  }
+  
+  console.log('[Dashboard] ✅ Token valid - showing dashboard');
+})();
 
 // ====================================================
 // FIRESTORE SESSION VALIDATION FUNCTION
@@ -651,26 +646,9 @@ document.addEventListener('click', async (e) => {
   }
 }, true); // Use capture phase for all clicks
 
-// VÉRIFICATION SYNCHRONE AU CHARGEMENT - PAS DE FLASH
-if(authManager.isAuthenticated()) {
-  showApp();
-  // Asynchronously validate with Firestore after page loads
-  setTimeout(async () => {
-    const isValid = await validateAdminSessionFromFirestore();
-    if (!isValid) {
-      console.log('[Admin Dashboard] Firestore validation failed, logging out');
-      logout();
-    }
-  }, 500);
-} else {
-  // Redirect to login page if not authenticated
-  console.log('[Admin Dashboard] No valid token found, redirecting to login');
-  window.location.href = './login.html';
-}
-
-// =====================================================
-// REDESIGNED LOGIN SYSTEM WITH FIRESTORE ROLE VALIDATION
-// =====================================================
+// ====================================================
+// REST OF DASHBOARD CODE CONTINUES HERE
+// ====================================================
 
 let currentLoginMethod = 'email';
 let adminCache = {}; // Cache admin users from Firestore
