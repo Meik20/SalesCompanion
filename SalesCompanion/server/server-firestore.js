@@ -467,21 +467,24 @@ app.post('/admin/login', async (req, res) => {
       last_login: new Date().toISOString()
     });
 
+    // Use actual role from Firestore, fallback to 'admin'
+    const adminRole = admin.role || 'admin';
+
     const token = jwt.sign(
-      { id, email: admin.email, role: 'admin' },
+      { id, email: admin.email, role: adminRole },
       JWT_SECRET,
       { expiresIn: '8h' }
     );
 
     // Log successful login
-    await logActivity('admin_login_success', id, { email: admin.email });
+    await logActivity('admin_login_success', id, { email: admin.email, role: adminRole });
 
     res.json({
       token,
       admin: { 
         id, 
         email: admin.email,
-        role: admin.role || 'admin',
+        role: adminRole,
         name: admin.name || admin.email.split('@')[0]
       },
       needs_password_change: admin.first_login || false
