@@ -871,9 +871,9 @@ function filterUsers() {
       // Show auth page
       document.getElementById('app').style.display = 'none';
       document.getElementById('auth-page').style.display = 'flex';
-      // Clear input fields
-      document.getElementById('login-user').value = 'admin';
-      document.getElementById('login-pass').value = '';
+      // Clear input fields (don't pre-fill for security)
+      document.getElementById('login-email').value = '';
+      document.getElementById('login-password').value = '';
       document.getElementById('login-err').style.display = 'none';
       console.log('[Auth] ✅ UI reset complete - ready for new login');
     }).catch((error) => {
@@ -881,8 +881,8 @@ function filterUsers() {
       // Still show auth page even if Firebase logout fails
       document.getElementById('app').style.display = 'none';
       document.getElementById('auth-page').style.display = 'flex';
-      document.getElementById('login-user').value = 'admin';
-      document.getElementById('login-pass').value = '';
+      document.getElementById('login-email').value = '';
+      document.getElementById('login-password').value = '';
       console.log('[Auth] ✅ UI reset complete (Firebase error ignored)');
     });
   } else {
@@ -890,8 +890,8 @@ function filterUsers() {
     console.log('[Auth] Firebase not initialized, showing auth page directly');
     document.getElementById('app').style.display = 'none';
     document.getElementById('auth-page').style.display = 'flex';
-    document.getElementById('login-user').value = 'admin';
-    document.getElementById('login-pass').value = '';
+    document.getElementById('login-email').value = '';
+    document.getElementById('login-password').value = '';
     document.getElementById('login-err').style.display = 'none';
     console.log('[Auth] ✅ Logout complete');
   }
