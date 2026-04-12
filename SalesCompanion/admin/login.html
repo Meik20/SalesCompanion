@@ -365,14 +365,39 @@
     const successMsg = document.getElementById('success-msg');
 
     // ============================================
+    // DATA CLEANUP (SECURITY)
+    // ============================================
+    // Clear sensitive data that should never be pre-filled
+    function cleanupLoginData() {
+      // NEVER save username in localStorage for security reasons
+      localStorage.removeItem(STORAGE_KEY_USERNAME);
+      
+      // If username accidentally contains a URL, clear it
+      const savedUsername = localStorage.getItem(STORAGE_KEY_USERNAME);
+      if (savedUsername && savedUsername.includes('http')) {
+        console.warn('[Admin Login] Found URL in username field, clearing it');
+        localStorage.removeItem(STORAGE_KEY_USERNAME);
+      }
+    }
+
+    // ============================================
     // INITIALIZATION
     // ============================================
     document.addEventListener('DOMContentLoaded', async () => {
       console.log('[Admin Login] Initializing with Firestore...');
       
-      // Set default server URL
+      // Clean up any corrupted data
+      cleanupLoginData();
+      
+      // Set default server URL (ALWAYS from storage or default)
       const savedHost = localStorage.getItem(STORAGE_KEY_HOST);
       serverUrlInput.value = savedHost || DEFAULT_HOST;
+      
+      // NEVER pre-fill username for security
+      usernameInput.value = '';
+      
+      // NEVER pre-fill password
+      passwordInput.value = '';
       
       // Check if already logged in via Firestore
       const sessionId = localStorage.getItem(STORAGE_KEY_SESSION_ID);
@@ -537,7 +562,7 @@
         console.log('[Admin Login] Valid session found in Firestore, redirecting to admin panel');
         localStorage.setItem(STORAGE_KEY_TOKEN, sessionData.token);
         localStorage.setItem(STORAGE_KEY_HOST, sessionData.host);
-        localStorage.setItem(STORAGE_KEY_USERNAME, sessionData.username);
+        // NOTE: Never save username to localStorage for security - keep it in Firestore only
         
         // Update last seen in Firestore
         await db.collection('admin_sessions').doc(sessionId).update({
