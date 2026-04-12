@@ -229,60 +229,9 @@ window.initFirebaseWhenReady();
 </head>
 <body>
 
-<!-- AUTH - CLEAN LOGIN FORM -->
-<div class="auth" id="auth-page">
-  <div class="auth-card">
-    <div class="auth-logo">
-      <div class="auth-icon">🏢</div>
-      <h1>SALES <span>COMPANION</span></h1>
-      <p>Panel Administrateur</p>
-    </div>
-
-    <div class="auth-err" id="login-err"></div>
-
-    <form id="login-form" onsubmit="handleLoginSubmit(event)">
-      <div class="fg">
-        <label>Serveur (URL)</label>
-        <input type="url" id="login-host" placeholder="http://localhost:3000 ou https://votre-serveur.com" required>
-      </div>
-      <div class="fg">
-        <label>Identifiant (username)</label>
-        <input type="text" id="login-email" placeholder="admin" required autocomplete="username">
-      </div>
-      <div class="fg">
-        <label>Mot de passe</label>
-        <input type="password" id="login-password" placeholder="••••••••" required autocomplete="current-password" onkeypress="if(event.key==='Enter') handleLoginSubmit(event)">
-      </div>
-      <button type="submit" class="auth-btn" id="login-btn">Se connecter</button>
-    </form>
-
-    <div style="text-align:center;margin-top:14px;font-size:12px">
-      <a href="#" onclick="showPasswordRecovery(event)" style="color:#1B7A3E;text-decoration:none;font-weight:600">Mot de passe oublié?</a>
-    </div>
-  </div>
-</div>
-
-<!-- FORCE CHANGE PASSWORD -->
-<div class="auth" id="force-password-page" style="display:none">
-  <div class="auth-card">
-    <div class="auth-logo">
-      <div class="auth-icon">🔒</div>
-      <h1>CHANGEMENT <span>OBLIGATOIRE</span></h1>
-      <p>Sécurité administrative</p>
-    </div>
-    <div style="background:#fef9ec;border:1px solid #f39c12;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:#555;line-height:1.5">
-      ⚠️ <strong>Vous utilisez le mot de passe par défaut.</strong><br>
-      Pour des raisons de sécurité, vous devez le changer avant de pouvoir continuer.
-    </div>
-    <div class="fg"><label>Nouveau mot de passe</label><input type="password" id="new-pass-1" placeholder="••••••••" onkeydown="if(event.key==='Enter')doForceChangePassword()"></div>
-    <div class="fg"><label>Confirmer</label><input type="password" id="new-pass-2" placeholder="••••••••" onkeydown="if(event.key==='Enter')doForceChangePassword()"></div>
-    <div class="auth-err" id="force-pass-err"></div>
-    <button class="auth-btn" id="fp-btn" onclick="doForceChangePassword()" style="background:#f39c12">Mettre à jour le mot de passe</button>
-  </div>
-</div>
-
 <!-- APP -->
-<div class="app" id="app">
+<div class="app" id="app" style="display: flex;">
+  <!-- Note: Authentication is handled by login.html. This is the dashboard only. -->
   <div class="sidebar">
     <div class="sb-brand">
       <div class="name">SALES <em>COMPANION</em></div>

@@ -273,16 +273,18 @@
 
     <!-- Form -->
     <form class="login-form" id="login-form" onsubmit="handleLogin(event)">
-      <!-- Server URL -->
+      <!-- Server URL (HARDCODED) -->
       <div class="form-group">
-        <label for="server-url">Serveur (URL)</label>
+        <label for="server-url">Serveur</label>
         <input
-          type="url"
+          type="text"
           id="server-url"
-          placeholder="https://salescompanion-production-a34d.up.railway.app"
-          required
+          readonly
           autocomplete="off"
         >
+        <div style="font-size: 11px; color: #666; margin-top: 4px;">
+          ℹ️ Serveur de production (immuable)
+        </div>
       </div>
 
       <!-- Username -->
@@ -389,9 +391,8 @@
       // Clean up any corrupted data
       cleanupLoginData();
       
-      // Set default server URL (ALWAYS from storage or default)
-      const savedHost = localStorage.getItem(STORAGE_KEY_HOST);
-      serverUrlInput.value = savedHost || DEFAULT_HOST;
+      // Set default server URL (ALWAYS from default - hardcoded)
+      serverUrlInput.value = DEFAULT_HOST;
       
       // NEVER pre-fill username for security
       usernameInput.value = '';
@@ -416,7 +417,7 @@
     async function handleLogin(event) {
       event.preventDefault();
       
-      const serverUrl = serverUrlInput.value.trim();
+      const serverUrl = DEFAULT_HOST; // Always use hardcoded server
       const username = usernameInput.value.trim();
       const password = passwordInput.value;
       
@@ -425,16 +426,8 @@
       hideMessage(successMsg);
       
       // Validate inputs
-      if (!serverUrl || !username || !password) {
+      if (!username || !password) {
         showMessage(errorMsg, '❌ Veuillez remplir tous les champs');
-        return;
-      }
-      
-      // Validate URL format
-      try {
-        new URL(serverUrl);
-      } catch (e) {
-        showMessage(errorMsg, '❌ URL du serveur invalide');
         return;
       }
       
