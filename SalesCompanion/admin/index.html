@@ -785,62 +785,31 @@ async function doForceChangePassword(){
     btn.textContent = 'Mettre à jour le mot de passe';
   }
 }
-    return;
-  }
+
+// ============================================
+// USER MANAGEMENT FUNCTIONS
+// ============================================
+
+function filterUsers() {
+  const searchTerm = (document.getElementById('user-search')?.value || '').toLowerCase();
+  const planFilter = document.getElementById('plan-filter')?.value || '';
   
-  if (pass1 === 'admin123') {
-    err.textContent = '❌ Choisissez un mot de passe différent du mot de passe par défaut';
-    err.style.display = 'block';
-    return;
-  }
-  
-  btn.disabled = true;
-  btn.textContent = 'Mise à jour en cours...';
-  
-  try {
-    const API = (window.location.origin && window.location.origin !== 'null') ? window.location.origin : 'http://localhost:3000';
-    const response = await fetch(`${API}/admin/change-password`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${adminToken}`
-      },
-      body: JSON.stringify({ newPassword: pass1 })
-    });
+  const rows = document.querySelectorAll('#users-body tr');
+  rows.forEach(row => {
+    const name = (row.cells[0]?.textContent || '').toLowerCase();
+    const email = (row.cells[1]?.textContent || '').toLowerCase();
+    const plan = row.cells[2]?.textContent || '';
     
-    if (!response.ok) {
-      const data = await response.json();
-      throw new Error(data.error || `Erreur ${response.status}`);
-    }
+    const matchesSearch = name.includes(searchTerm) || email.includes(searchTerm);
+    const matchesPlan = !planFilter || plan === planFilter;
     
-    const data = await response.json();
-    console.log('[Auth] ✅ Password changed successfully');
-    
-    // Clear inputs
-    document.getElementById('new-pass-1').value = '';
-    document.getElementById('new-pass-2').value = '';
-    
-    // Show success message
-    err.textContent = '✅ Mot de passe changé avec succès. Accès au panel...';
-    err.style.color = '#1B7A3E';
-    err.style.display = 'block';
-    
-    // Wait 1 second and show app
-    setTimeout(() => {
-      document.getElementById('force-password-page').style.display = 'none';
-      showApp();
-    }, 1000);
-  } catch (error) {
-    err.textContent = '❌ ' + (error.message || 'Erreur lors du changement de mot de passe');
-    err.style.display = 'block';
-    console.error('[Auth] Password change error:', error);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Mettre à jour le mot de passe';
-  }
+    row.style.display = (matchesSearch && matchesPlan) ? '' : 'none';
+  });
 }
 
-function logout(){
+// ============================================
+// LOGOUT FUNCTION
+// ============================================
   console.log('[Auth] Logout initiated...');
   // Clear admin token FIRST (before Firebase logout)
   adminToken = null;
